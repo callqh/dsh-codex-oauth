@@ -1,0 +1,26 @@
+# A linked checkout keeps its own `node_modules`: the plugin's static imports
+# of @deepseek-ai/* resolve by ancestor lookup from the plugin's own real path,
+# so these have to land here rather than in the profile.
+packages:
+  - .
+
+nodeLinker: hoisted
+# The plugin is resolved through the profile's loader, not through this
+# workspace's dependency graph; a strict peer graph would only add noise.
+autoInstallPeers: false
+# `minimumReleaseAge` is a machine-wide supply-chain delay on the user's pnpm
+# config, and the whole @deepseek-ai 0.2.0-rc.2 line is younger than it. The
+# exclusions name exactly the artifacts this package installs.
+minimumReleaseAgeExclude:
+  - '@deepseek-ai/cordis@4.0.4'
+  - '@deepseek-ai/dsh-authorization@0.2.0-rc.2'
+  - '@deepseek-ai/dsh-brand@0.2.0-rc.2'
+  - '@deepseek-ai/dsh-client-ui-primitives@0.2.0-rc.2'
+  - '@deepseek-ai/dsh-credentials@0.2.0-rc.2'
+  - '@deepseek-ai/dsh-invariants@0.2.0-rc.2'
+  - '@deepseek-ai/dsh-llm@0.2.0-rc.2'
+  - '@deepseek-ai/dsh-timeout@0.2.0-rc.2'
+  - '@deepseek-ai/dsh-typert-protocol@0.2.0-rc.2'
+  - '@deepseek-ai/dsh-util-crypto@0.2.0-rc.2'
+  - '@deepseek-ai/dsh-util-values@0.2.0-rc.2'
+  - '@deepseek-ai/dsh-typert-registry@0.2.0-rc.2'

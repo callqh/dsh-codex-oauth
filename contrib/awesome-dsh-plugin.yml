@@ -1,0 +1,26 @@
+# Submission payload for the community plugin list
+#
+# This file is NOT part of the plugin. It is the one-file PR that adds this
+# plugin to the curated DSH plugin registry, kept here so the entry and the code
+# it describes stay in step.
+#
+#   target repo: github.com/awesome-dsh-plugin/awesome-dsh-plugin
+#   target path: data/plugins/<owner>__<repo>.yml
+#
+# The list is generated from those files; do not edit its READMEs by hand.
+# Requirements the CI checks, and how this plugin meets them:
+#
+#   dsh.bundle manifest  -> declared in package.json (dsh.bundle.patch)
+#   repo age >= 1 day    -> checked automatically against the repository
+#   dsh-plugin topic     -> set on the repository
+#   accurate description -> every claim below is verifiable in this repository
+#
+# Copy this file to data/plugins/callqh__dsh-codex-oauth.yml in that repository
+# and open a pull request. Nothing here needs to change first.
+
+url: https://github.com/callqh/dsh-codex-oauth
+name: callqh/dsh-codex-oauth
+category: model
+description:
+  en: Sign in to OpenAI Codex with a ChatGPT Plus/Pro subscription, driving the OAuth flow DeepSeek Harness already registers; no API key is stored, and tokens never reach the browser.
+  zh: 用已有的 ChatGPT Plus/Pro 订阅登录 OpenAI Codex，驱动 DeepSeek Harness 已注册的 OAuth 流程；不存 API Key，令牌不会进入浏览器。

@@ -1,0 +1,30 @@
+{
+  // Typecheck-only project for the browser half (src/client), which tsdown
+  // bundles into client/client.js. The host project excludes this tree, so
+  // `npm run typecheck` runs both and the browser code is never compiled into
+  // lib/.
+  //
+  // `jsx: react-jsx` is the runtime the platform seed table exposes as
+  // `react/jsx-runtime`; the automatic runtime keeps every component file from
+  // importing React it does not otherwise use.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2024",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "types": [],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/client"
+  ]
+}

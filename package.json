@@ -1,0 +1,111 @@
+{
+  "name": "dsh-codex-oauth",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "license": "MIT",
+  "description": "Sign in to OpenAI Codex from DeepSeek Harness with a ChatGPT Plus/Pro subscription, by driving the authorization flow llm-pi-ai already registers.",
+  "keywords": [
+    "deepseek",
+    "harness",
+    "dsh",
+    "dsh-plugin",
+    "codex",
+    "openai",
+    "chatgpt",
+    "oauth",
+    "subscription",
+    "plugin"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json --noEmit",
+    "build": "tsc -p tsconfig.json && npm run build:client",
+    "build:client": "tsdown",
+    "check": "npm run typecheck && npm run build && node scripts/preflight.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "stage-verify": "node scripts/stage-verify.mjs",
+    "prepare": "npm run build",
+    "prepack": "npm run check"
+  },
+  "dependencies": {
+    "@deepseek-ai/cordis": "^4.0.4",
+    "@deepseek-ai/dsh-authorization": ">=0.2.0-rc.2 <0.3.0-0 || >=0.3.0-0",
+    "@deepseek-ai/dsh-credentials": ">=0.2.0-rc.2 <0.3.0-0 || >=0.3.0-0",
+    "@deepseek-ai/dsh-llm": ">=0.2.0-rc.2 <0.3.0-0 || >=0.3.0-0",
+    "@deepseek-ai/dsh-typert-protocol": ">=0.2.0-rc.2 <0.3.0-0 || >=0.3.0-0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.1",
+    "@deepseek-ai/dsh-authorization": ">=0.2.0-rc.2 <0.3.0-0 || >=0.3.0-0",
+    "@deepseek-ai/dsh-credentials": ">=0.2.0-rc.2 <0.3.0-0 || >=0.3.0-0",
+    "@deepseek-ai/dsh-typert-protocol": ">=0.2.0-rc.2 <0.3.0-0 || >=0.3.0-0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-authorization": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-credentials": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-typert-protocol": {
+      "optional": true
+    }
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings-models"
+      ]
+    }
+  },
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": "./client/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "src",
+    "client",
+    "scripts",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh.md",
+    "SECURITY.md",
+    "VERIFICATION.md",
+    "LICENSE"
+  ],
+  "devDependencies": {
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-typert-registry": "0.2.0-rc.2",
+    "@types/node": "^24.10.1",
+    "@types/react": "~18.3.1",
+    "jsdom": "^29.1.1",
+    "lightningcss": "^1.33.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.14",
+    "typescript": "^5.9.3"
+  },
+  "author": "Liuqh233 <callqh@users.noreply.github.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/callqh/dsh-codex-oauth.git"
+  },
+  "homepage": "https://github.com/callqh/dsh-codex-oauth#readme",
+  "bugs": {
+    "url": "https://github.com/callqh/dsh-codex-oauth/issues"
+  }
+}

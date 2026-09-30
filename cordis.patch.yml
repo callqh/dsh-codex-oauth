@@ -1,0 +1,20 @@
+# Bundle patch for this plugin. The profile's loader reads it because
+# `package.json` declares `dsh.bundle.patch`, and inserts the row below into
+# the profile's own layer stack.
+#
+# WHY `./lib/index.js` AND NOT THE BARE PACKAGE NAME
+#
+# The row's `name` is a module specifier the loader imports. On this packaged
+# Desktop build `loader.internal` is undefined, so the import falls through to
+# the native one and a BARE name resolves from the loader's own location —
+# inside app.asar, where no profile bundle exists — and fails with
+# `failed to import`. A `./` path is resolved by the overlay-patch reader
+# against the directory this file lives in, which is exactly the installed
+# package, so `./lib/index.js` names the built host entry wherever the profile
+# happens to put it.
+#
+# The entry id is what a user sees in the plugin list and what the profile
+# patch targets for configuration, so it is the plugin's own name.
+- insert:
+    - id: codex-oauth
+      name: ./lib/index.js

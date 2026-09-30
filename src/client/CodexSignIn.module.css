@@ -1,0 +1,156 @@
+/* The sign-in card. Every colour, radius and border comes from a `--dsw-*`
+   token, so the card follows the host's theme in both light and dark without
+   this plugin knowing either. Class names are hashed by the build. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+}
+
+.title {
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 22px;
+}
+
+.headSpacer {
+  flex: 1;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 22px;
+}
+
+.label {
+  color: var(--dsw-alias-label-tertiary);
+  flex: none;
+  min-width: 56px;
+}
+
+.value {
+  color: var(--dsw-alias-label-primary);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hint {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.error {
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.notice {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.done {
+  color: var(--dsw-alias-state-success-primary, var(--dsw-alias-label-secondary));
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.device {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.code {
+  align-self: flex-start;
+  background: var(--dsw-alias-bg-module-platform, var(--dsw-alias-bg-layer-2));
+  border: 1px dashed var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-md, 8px);
+  color: var(--dsw-alias-label-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  padding: 6px 12px;
+}
+
+.link {
+  color: var(--dsw-alias-brand-primary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.choice {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: left;
+}
+
+.choiceHint {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.answerRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.answerRow > :first-child {
+  flex: 1;
+  min-width: 180px;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+  flex: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

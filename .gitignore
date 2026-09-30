@@ -1,0 +1,9 @@
+# Build output that is NOT committed.
+#
+# lib/ is produced by `npm run build` and is what the loader imports, but it is
+# generated from src/ and the profile installs from this checkout, so keeping
+# it out of git keeps the diff about the source.
+lib/
+node_modules/
+*.tsbuildinfo
+.DS_Store
