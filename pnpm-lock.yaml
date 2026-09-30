@@ -12,16 +12,16 @@ importers:
         specifier: ^4.0.4
         version: 4.0.4
       '@deepseek-ai/dsh-authorization':
-        specifier: 0.2.0-rc.2
+        specifier: '>=0.2.0-rc.2 <0.3.0-0 || >=0.3.0-0'
         version: 0.2.0-rc.2(@deepseek-ai/cordis@4.0.4)(@deepseek-ai/dsh-credentials@0.2.0-rc.2(@deepseek-ai/cordis@4.0.4))(@deepseek-ai/dsh-llm@0.2.0-rc.2(@deepseek-ai/cordis@4.0.4))
       '@deepseek-ai/dsh-credentials':
-        specifier: 0.2.0-rc.2
+        specifier: '>=0.2.0-rc.2 <0.3.0-0 || >=0.3.0-0'
         version: 0.2.0-rc.2(@deepseek-ai/cordis@4.0.4)
       '@deepseek-ai/dsh-llm':
-        specifier: 0.2.0-rc.2
+        specifier: '>=0.2.0-rc.2 <0.3.0-0 || >=0.3.0-0'
         version: 0.2.0-rc.2(@deepseek-ai/cordis@4.0.4)
       '@deepseek-ai/dsh-typert-protocol':
-        specifier: 0.2.0-rc.2
+        specifier: '>=0.2.0-rc.2 <0.3.0-0 || >=0.3.0-0'
         version: 0.2.0-rc.2(@deepseek-ai/cordis@4.0.4)
     devDependencies:
       '@deepseek-ai/dsh-client-ui-primitives':
@@ -42,6 +42,9 @@ importers:
       lightningcss:
         specifier: ^1.33.0
         version: 1.33.0
+      playwright:
+        specifier: ^1.63.0
+        version: 1.63.0
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -629,6 +632,16 @@ packages:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
     engines: {node: '>=12'}
 
+  playwright-core@1.63.0:
+    resolution: {integrity: sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.63.0:
+    resolution: {integrity: sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
@@ -1207,6 +1220,12 @@ snapshots:
       entities: 8.1.0
 
   picomatch@4.0.7: {}
+
+  playwright-core@1.63.0: {}
+
+  playwright@1.63.0:
+    dependencies:
+      playwright-core: 1.63.0
 
   punycode@2.3.1: {}
 

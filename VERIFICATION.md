@@ -54,7 +54,7 @@ preflight: all checks passed
 reaches them: with `autoInstallPeers: false` a missing one is an
 `ERR_MODULE_NOT_FOUND` at plugin import — i.e. a failed boot.
 
-### 1.2 Tests — `npm test` (43 cases, five lanes)
+### 1.2 Tests — `npm test` (44 cases, five lanes)
 
 - `tests/flow.test.mjs` — the grant projection: an absent record, an api-key
   record, a grant with no access token, a real pi-ai grant, a missing plan claim,
@@ -113,7 +113,7 @@ reaches them: with `autoInstallPeers: false` a missing one is an
   implements no default action for a submit button, so the form has to be
   submitted directly.
 
-### 1.3 Staging boot — `scripts/stage-verify.mjs`
+### 1.3 Staging boot — `scripts/stage-verify.mjs` (26 checks)
 
 A throwaway profile is built from the **real `desktop` profile's patch layer**,
 given this bundle, and booted:
@@ -140,8 +140,69 @@ stage-verify: booting "codex-staging" on port 53262
   ok   the loopback callback server is listening
   ok   the browser-branch attempt is withdrawn
   ok   cancelling releases the callback port
+  ok   the browser bundle ran
+  ok   its Remote namespace mounted
+  ok   its settings section registered
+  ok   the section appears in the settings nav
+  ok   the card renders its signed-out state
+  ok   the card offers a sign-in control
+stage-verify: card screenshot written to <repo>/assets/screenshot-settings.png
+
 stage-verify: this build installs and activates cleanly
 ```
+
+### 1.4 The card in a real browser — `--browser`
+
+The six checks in that last group are the only ones that exercise the **client**
+half against a real platform: the module loader, the platform seed table, the
+reflection registry, the slot ledger and React, in the browser they run in. Run
+it with `--browser`, or `--screenshot <path>` to regenerate the README image.
+
+This lane exists because of a failure nothing else could see. The first version
+declared every Remote codec as `{ mode: 'strict' }`; the gateway accepts that,
+and the reflection registry additionally requires a `typeSymbol` and a
+`create()` factory. The throw happened inside `$mount`, the plugin caught it and
+logged a warning, and the result was a plugin that loaded, activated, claimed
+its seat correctly, and then rendered nothing at all — indistinguishable from
+"not installed". Every host-side check passed throughout.
+
+It also caught a defect the host cannot see: the plan row printed the JWT's raw
+tier identifier — an underscore-joined enum like `self_serve_business_prolite` —
+which makes a working card look broken. Unrecognised tiers are now formatted
+from the identifier itself.
+
+The staging home is isolated, so the committed screenshot is always taken with
+no credential in reach — signed out, no account data, which is also the state a
+new user sees.
+
+### 1.5 A real sign-in, on this machine
+
+The authorization has been completed once against OpenAI through this plugin.
+What it left behind is objective:
+
+```
+~/.dsh/.credentials.yaml   contains a record at key  llm-pi-ai/openai-codex
+                           kind: grant, payload of the pi-ai oauth shape
+```
+
+and reading that record back through the card — in a real browser — produces:
+
+```
+OpenAI Codex                          Signed in
+Account              <8 chars>…<4 chars>        truncated on the host
+Plan                 <tier>                    formatted from the claim
+Sign-in valid until  2026-10-10T09:04:32Z
+```
+
+The account and tier are redacted here rather than reproduced; the shape is
+what the card produced, and the truncation happens on the host, so the full
+account id never crosses to the browser in the first place.
+
+That is INTENT criteria 1, 2 and 6 satisfied end to end in the real application,
+with the real flow, for a real account.
+
+**Still outstanding: a request to a Codex model.** No session log on this machine
+shows the provider being used, so it has not been exercised.
 
 It boots with its **own `DSH_HOME`**, a fresh temporary directory, and mirrors
 the profile it is told to mirror from the real one read-only. Before that split
@@ -240,6 +301,9 @@ profile's `bundles` is composed at process start.
 - [ ] Cancelling mid-flow returns the card to Not signed in.
 
 ### 2.2 A real request (INTENT criterion 3 — the deciding one)
+
+This is the only acceptance criterion still open. Everything else has been
+exercised, most of it automatically.
 
 - [ ] In the model picker, choose a Codex model (provider `openai-codex`).
 - [ ] Send a message and **get a normal reply** — not 401/403, not "route is not

@@ -410,6 +410,20 @@ test('a text prompt renders an input and submits the typed answer', async () => 
   assert.deepEqual(answers, ['the-code'])
 })
 
+test('an unrecognised plan tier is formatted rather than printed raw', async () => {
+  // The claim is an internal identifier — `self_serve_business_prolite` is a
+  // real one, and printing it verbatim makes a working card look broken.
+  const view = await render(await mountCard(apiReturning(status({
+    signedIn: true,
+    accountId: 'acct-012…cdef',
+    planType: 'self_serve_business_prolite',
+    expiresAt: Date.UTC(2026, 9, 10, 9, 4, 32),
+  }))))
+  const text = view.text()
+  assert.match(text, /Self Serve Business Prolite/)
+  assert.doesNotMatch(text, /self_serve_business_prolite/)
+})
+
 test('the card renders the signed-in facts and a sign-out control', async () => {
   const view = await render(await mountCard(apiReturning(status({
     signedIn: true,

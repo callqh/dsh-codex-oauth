@@ -54,7 +54,7 @@ function parseArgs(argv) {
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index]
     const value = argv[index + 1]
-    if (flag === '--dsh') { options.dsh = value; index += 1 } else if (flag === '--source') { options.source = value; index += 1 } else if (flag === '--name') { options.name = value; index += 1 } else if (flag === '--timeout') { options.timeout = Number(value); index += 1 } else if (flag === '--keep') { options.keep = true } else if (flag === '--help' || flag === '-h') { options.help = true } else throw new Error(`unknown argument ${JSON.stringify(flag)}`)
+    if (flag === '--dsh') { options.dsh = value; index += 1 } else if (flag === '--source') { options.source = value; index += 1 } else if (flag === '--name') { options.name = value; index += 1 } else if (flag === '--timeout') { options.timeout = Number(value); index += 1 } else if (flag === '--browser') { options.browser = true } else if (flag === '--screenshot') { options.screenshot = value; index += 1 } else if (flag === '--keep') { options.keep = true } else if (flag === '--help' || flag === '-h') { options.help = true } else throw new Error(`unknown argument ${JSON.stringify(flag)}`)
   }
   options.dsh ??= process.env.DSH_BIN
   return options
@@ -208,6 +208,102 @@ async function signInProbe(url, cookie, check) {
     // half-finished authorization behind.
     const cancelled = await callRemote(url, cookie, 'codexAuth/cancel')
     check('withdrawing the probe attempt settles it as cancelled', cancelled?.value?.phase === 'cancelled', JSON.stringify(cancelled?.value ?? cancelled?.error ?? null))
+  }
+}
+
+/**
+ * Load the page in a real browser and assert the card renders.
+ *
+ * Everything above this line talks to the host. This is the only check that
+ * exercises the CLIENT half against a real platform: the module loader, the
+ * platform seed table, the Reflection Registry, the slot ledger and the React
+ * tree, in the browser they actually run in. It is the lane that would have
+ * caught the contribution-mount failure that made the first version of this
+ * plugin load, activate and claim its seat correctly while showing nothing.
+ *
+ * The staging home is isolated, so no real credential is in reach and the card
+ * is always captured in its signed-out state — which is also the state a new
+ * user sees, and the reason the committed screenshot carries no account.
+ *
+ * @param url - the banner URL.
+ * @param check - the assertion recorder.
+ * @param screenshotPath - where to write the card image, if anywhere.
+ */
+async function browserProbe(url, check, screenshotPath) {
+  let chromium
+  try {
+    ({ chromium } = await import('playwright'))
+  } catch {
+    check('playwright is available for the browser lane', false, 'run `pnpm install` (playwright is a devDependency)')
+    return
+  }
+
+  // The bundled build is not always present; a locally installed Chrome is, and
+  // using it avoids a 150 MB download for one screenshot.
+  const launch = async () => {
+    try {
+      return await chromium.launch({ channel: 'chrome' })
+    } catch {
+      return await chromium.launch()
+    }
+  }
+  const browser = await launch()
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 })
+  const console_ = []
+  page.on('console', (message) => console_.push(message.text()))
+  page.on('pageerror', (error) => console_.push(`pageerror: ${error.message}`))
+  try {
+    await page.goto(url, { waitUntil: 'domcontentloaded' })
+    // The shell boots the client plugin graph asynchronously.
+    await page.waitForTimeout(9000)
+
+    // A first-run notice covers the settings trigger; its control is localised.
+    for (const name of ['Continue', 'Got it', 'OK', '知道了', '继续']) {
+      const button = page.getByRole('button', { name, exact: true })
+      if (await button.count() > 0) {
+        await button.first().click().catch(() => {})
+        await page.waitForTimeout(600)
+        break
+      }
+    }
+
+    // The settings trigger advertises Alt+Meta+, — the shortcut sidesteps any
+    // overlay that is still up.
+    await page.keyboard.press('Alt+Meta+Comma').catch(() => {})
+    await page.waitForTimeout(1500)
+    if (await page.locator('[role="dialog"]').count() === 0) {
+      const trigger = page.getByRole('button', { name: 'Settings', exact: true })
+      if (await trigger.count() > 0) await trigger.first().click({ force: true }).catch(() => {})
+      await page.waitForTimeout(1500)
+    }
+
+    const lines = console_.filter((line) => line.includes('[dsh-codex-oauth]'))
+    check('the browser bundle ran', lines.some((line) => line.includes('client apply')), lines.join(' | ') || 'no [dsh-codex-oauth] output at all')
+    check('its Remote namespace mounted', lines.some((line) => line.includes('mounted')), lines.join(' | '))
+    check('its settings section registered', lines.some((line) => line.includes('section')), lines.join(' | '))
+
+    // The nav label follows the UI language, so both spellings are accepted.
+    const tab = page.getByRole('button', { name: /Codex sign-in|Codex 登录/, exact: true })
+    check('the section appears in the settings nav', await tab.count() > 0, 'no Codex entry in the sidebar')
+    if (await tab.count() > 0) {
+      await tab.first().click()
+      await page.waitForTimeout(2000)
+    }
+
+    const dialog = page.locator('[role="dialog"]').first()
+    const text = await dialog.innerText().catch(() => '')
+    // Signed out, because this home holds no credential.
+    check('the card renders its signed-out state', /Not signed in|未登录/.test(text), text.replace(/\n/g, ' ').slice(0, 160))
+    check('the card offers a sign-in control', await dialog.locator('button').count() > 0, 'no control in the card')
+
+    if (screenshotPath !== undefined) {
+      const target = resolve(root, screenshotPath)
+      await mkdir(dirname(target), { recursive: true })
+      await dialog.screenshot({ path: target })
+      process.stdout.write(`stage-verify: card screenshot written to ${target}\n`)
+    }
+  } finally {
+    await browser.close()
   }
 }
 
@@ -429,6 +525,10 @@ try {
   // implementation got wrong (it rendered this choice as a free-text field).
   await signInProbe(url, session.cookie, check)
   await browserLoginProbe(url, session.cookie, check)
+
+  if (options.browser === true || options.screenshot !== undefined) {
+    await browserProbe(url, check, options.screenshot)
+  }
 } finally {
   child.kill('SIGTERM')
   await new Promise((done) => {

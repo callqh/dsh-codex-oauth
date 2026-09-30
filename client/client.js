@@ -107,27 +107,27 @@ window.__ModuleLoader__.load({
 			document.head.appendChild(tag);
 		}
 		var CodexSignIn_module_css_default = {
-			"link": "NEjy1a_link",
-			"answerRow": "NEjy1a_answerRow",
-			"device": "NEjy1a_device",
-			"choice": "NEjy1a_choice",
-			"code": "NEjy1a_code",
-			"error": "NEjy1a_error",
-			"headSpacer": "NEjy1a_headSpacer",
-			"label": "NEjy1a_label",
-			"choices": "NEjy1a_choices",
-			"head": "NEjy1a_head",
-			"value": "NEjy1a_value",
-			"done": "NEjy1a_done",
-			"spin": "NEjy1a_spin",
-			"row": "NEjy1a_row",
-			"body": "NEjy1a_body",
-			"title": "NEjy1a_title",
-			"root": "NEjy1a_root",
-			"hint": "NEjy1a_hint",
-			"notice": "NEjy1a_notice",
 			"choiceHint": "NEjy1a_choiceHint",
-			"actions": "NEjy1a_actions"
+			"hint": "NEjy1a_hint",
+			"root": "NEjy1a_root",
+			"choices": "NEjy1a_choices",
+			"choice": "NEjy1a_choice",
+			"done": "NEjy1a_done",
+			"head": "NEjy1a_head",
+			"actions": "NEjy1a_actions",
+			"device": "NEjy1a_device",
+			"error": "NEjy1a_error",
+			"title": "NEjy1a_title",
+			"label": "NEjy1a_label",
+			"spin": "NEjy1a_spin",
+			"value": "NEjy1a_value",
+			"row": "NEjy1a_row",
+			"answerRow": "NEjy1a_answerRow",
+			"headSpacer": "NEjy1a_headSpacer",
+			"body": "NEjy1a_body",
+			"notice": "NEjy1a_notice",
+			"code": "NEjy1a_code",
+			"link": "NEjy1a_link"
 		};
 		//#endregion
 		//#region src/client/CodexSignIn.tsx
@@ -180,7 +180,7 @@ window.__ModuleLoader__.load({
 			const mounted = (0, react.useRef)(true);
 			(0, react.useEffect)(() => {
 				mounted.current = true;
-				console.info("[dsh-codex-oauth] card mounted for the openai-codex row");
+				console.info("[dsh-codex-oauth] card mounted in its settings section");
 				return () => {
 					mounted.current = false;
 				};
@@ -586,12 +586,31 @@ window.__ModuleLoader__.load({
 				})]
 			})] });
 		}
-		/** The plan tier, as a product name rather than the claim's own spelling. */
+		/**
+		* The two tiers the subscription copy names, so they read as products.
+		*
+		* Everything else is deliberately not translated: those values are the
+		* vendor's own tier identifiers, and putting a localised product name on one
+		* would be inventing a plan that may not exist.
+		*/
+		const PLAN_MESSAGE = {
+			plus: "planPlus",
+			pro: "planPro"
+		};
+		/**
+		* The plan tier, as something a person can read.
+		*
+		* The claim is an internal identifier — `self_serve_business_prolite` is a real
+		* one — and printing it verbatim makes a working card look broken. Known tiers
+		* get their product name; the rest are formatted from the identifier itself
+		* (separators to spaces, words capitalised), which is presentation, not a claim
+		* about what the plan is called.
+		*/
 		function planLabel(planType, t) {
 			if (planType === null) return t("unknown");
-			if (planType === "plus") return t("planPlus");
-			if (planType === "pro") return t("planPro");
-			return planType;
+			const message = PLAN_MESSAGE[planType];
+			if (message !== void 0) return t(message);
+			return planType.split(/[_-]+/).filter((word) => word.length > 0).map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
 		}
 		/** An absolute expiry, or "unknown" when the grant carried none. */
 		function timeLabel(expiresAt, t) {

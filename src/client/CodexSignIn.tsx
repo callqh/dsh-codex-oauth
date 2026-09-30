@@ -85,11 +85,11 @@ export function CodexSignIn({ getApi, t }: CodexSignInProps): ReactElement {
 
   useEffect(() => {
     mounted.current = true
-    // The page renders this cell by LOOKING UP the keyed entry, so this line is
-    // only reached when the registration actually landed in the slot ledger and
-    // the Models page asked for it. Paired with the entry's own breadcrumb, it
-    // separates "never registered" from "registered but never selected".
-    console.info('[dsh-codex-oauth] card mounted for the openai-codex row')
+    // The shell renders this section by looking the entry up in the slot
+    // ledger, so reaching this line means registration landed AND the settings
+    // page selected it. Paired with the entry's own breadcrumb, it separates
+    // "never registered" from "registered but never selected".
+    console.info('[dsh-codex-oauth] card mounted in its settings section')
     return () => {
       mounted.current = false
     }
@@ -454,12 +454,36 @@ function AttemptBody(props: {
   )
 }
 
-/** The plan tier, as a product name rather than the claim's own spelling. */
+/**
+ * The two tiers the subscription copy names, so they read as products.
+ *
+ * Everything else is deliberately not translated: those values are the
+ * vendor's own tier identifiers, and putting a localised product name on one
+ * would be inventing a plan that may not exist.
+ */
+const PLAN_MESSAGE: Partial<Record<string, MessageKey>> = {
+  plus: 'planPlus',
+  pro: 'planPro',
+}
+
+/**
+ * The plan tier, as something a person can read.
+ *
+ * The claim is an internal identifier — `self_serve_business_prolite` is a real
+ * one — and printing it verbatim makes a working card look broken. Known tiers
+ * get their product name; the rest are formatted from the identifier itself
+ * (separators to spaces, words capitalised), which is presentation, not a claim
+ * about what the plan is called.
+ */
 function planLabel(planType: string | null, t: (key: MessageKey) => string): string {
   if (planType === null) return t('unknown')
-  if (planType === 'plus') return t('planPlus')
-  if (planType === 'pro') return t('planPro')
+  const message = PLAN_MESSAGE[planType]
+  if (message !== undefined) return t(message)
   return planType
+    .split(/[_-]+/)
+    .filter((word) => word.length > 0)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
 }
 
 /** An absolute expiry, or "unknown" when the grant carried none. */

@@ -22,6 +22,7 @@ DeepSeek Harness 已经具备跑 Codex 的全部能力：浏览器与设备码�
 
 - [环境要求](#环境要求)
 - [安装](#安装)
+- [交给 AI agent 做](#交给-ai-agent-做)
 - [使用](#使用)
 - [工作原理](#工作原理)
 - [兼容性](#兼容性)
@@ -40,6 +41,9 @@ DeepSeek Harness 已经具备跑 Codex 的全部能力：浏览器与设备码�
 | Profile 配置 | 一条 **keyless** 的 `openai-codex` 路由 —— 见下 |
 
 ## 安装
+
+这里是简版。**完整步骤在 [INSTALL.zh.md](INSTALL.zh.md)** —— 每条命令、每一步该看到
+什么、以及不对时怎么办。
 
 ### 1. 声明路由
 
@@ -82,6 +86,8 @@ dsh plugin --profile web add dsh-codex-oauth
 
 打开 **设置 → Codex 登录**。
 
+![Codex 登录，未登录状态](assets/screenshot-settings.png)
+
 未登录时只有一个按钮。点下去之后，流程会先问你想用哪种登录方式：
 
 - **浏览器登录**（默认）—— 授权页面在新标签页打开，回调由主机侧的
@@ -92,6 +98,35 @@ dsh plugin --profile web add dsh-codex-oauth
 账号、套餐等级和令牌有效期。点 **退出登录** 会删除凭证记录。
 
 浏览器端任何时候都拿不到 access / refresh 令牌明文。
+
+## 交给 AI agent 做
+
+[INSTALL.zh.md](INSTALL.zh.md) 里的每一步都是机械操作。把下面这段贴进你的 Harness
+agent 让它做：
+
+```text
+请为我现在使用的 profile 安装并配置这个 DeepSeek Harness 插件：
+https://github.com/callqh/dsh-codex-oauth
+装完做验证。先读那个仓库里的 INSTALL.md。
+
+硬性要求：
+- 只动 ~/.dsh/profiles/ 下我正在用的那一个 profile，不要碰其它 profile。
+- 改那个 profile 的 cordis.patch.yml 或 package.json 之前，先复制一份到
+  同名 .bak-<epoch-ms>，并告诉我你做了备份。
+- openai-codex 路由必须保持 KEYLESS：`providers: { "openai-codex": {} }`。
+  绝对不要给它加 apiKeyEnv —— 那会把 ChatGPT 订阅认证换成 API Key，登录就废了。
+- 如果我的 profile 是 `desktop`，dsh CLI 拒绝管理它。请改用应用内的插件管理器，
+  不要手工改文件。
+- 不要自己重启 Harness。告诉我什么时候重启，然后就停在那里。
+- 不要增删或升级其它任何东西。
+
+做完请汇报：
+1. 你找到的是哪个 profile、哪个 Harness 版本；
+2. 路由是否已存在，以及你具体改了什么；
+3. 你用哪种方式安装的插件，附上确切命令或操作；
+4. 我应该在「设置 -> Codex 登录」里看到什么；
+5. 任何失败，原文引用错误信息。
+```
 
 ## 工作原理
 
@@ -144,14 +179,16 @@ dsh plugin --profile web add dsh-codex-oauth
 
 ### 已验证
 
-自动化泳道覆盖了构建、五条泳道共 43 个用例，以及在一个由真实 profile 补丁层搭出的
-一次性 profile 里跑的 20 项检查——其中包括对**两条**登录分支各真实发起一次再撤回、
-127.0.0.1:1455 回调服务器确实在监听、以及取消后端口被释放。详见
-[VERIFICATION.md](VERIFICATION.md)。
+自动化泳道覆盖了构建、五条泳道共 44 个用例，以及在一个由真实 profile 补丁层搭出的
+一次性 profile 里跑的 26 项检查——其中包括对**两条**登录分支各真实发起一次再撤回、
+127.0.0.1:1455 回调服务器确实在监听、取消后端口被释放，以及**在真实浏览器里用真实
+模块加载器、平台种子表和槽位账本渲染卡片**。详见 [VERIFICATION.md](VERIFICATION.md)。
 
-自动化泳道没有覆盖的只有一件事：完成一次真实的 OpenAI 授权，以及向 Codex 模型发
-一条真实请求——这两件事都需要人和一个 ChatGPT 账号。如果你恰好卡在这里，请带上
-控制台里 `[dsh-codex-oauth]` 开头的日志开 issue。
+本机也已完成过一次真实的 OpenAI 授权：它留下的凭证是 `llm-pi-ai/openai-codex` 下的
+一条 `grant` 记录，卡片把它读回来显示为脱敏账号、套餐等级和有效期。
+
+仍未验证的：向 Codex **模型**发一条真实请求。如果你恰好卡在这里，请带上控制台里
+`[dsh-codex-oauth]` 开头的日志开 issue。
 
 ## 排错
 
@@ -173,7 +210,7 @@ bundle 会打几条 `[dsh-codex-oauth]` 前缀的日志。在浏览器控制台�
 ```sh
 pnpm install
 npm run check          # 类型检查（宿主 + 客户端）→ 构建 → 预检断言
-npm test               # 43 个用例，五条泳道
+npm test               # 44 个用例，五条泳道
 npm run stage-verify -- --dsh <指向 @deepseek-ai/dsh/lib/bin.js 的路径>
 ```
 
@@ -201,7 +238,7 @@ npm run stage-verify -- --dsh /tmp/dsh-asar/dsh/node_modules/@deepseek-ai/dsh/li
 | `src/client/` | 浏览器半边：分区注册、卡片、词典、错误边界 |
 | `tests/descriptors.test.mjs` | 用真实 typert registry 校验 Remote 描述符 |
 | `scripts/preflight.mjs` | 形状与可导入性断言 |
-| `scripts/stage-verify.mjs` | 一次性 profile 端到端冒烟 |
+| `scripts/stage-verify.mjs` | 一次性 profile 端到端冒烟；`--browser` 加一条真实浏览器泳道，`--screenshot <p>` 重新生成上面那张图 |
 
 `lib/` 与 `client/client.js` 都是 `src/` 的构建产物。`client/client.js`
 **提交进仓库**，因为有些安装路径会禁用构建脚本；`lib/` 由安装时的 `prepare`

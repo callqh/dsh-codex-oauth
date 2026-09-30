@@ -25,6 +25,7 @@ token, and owns no refresh loop.
 
 - [Requirements](#requirements)
 - [Install](#install)
+- [Set it up with an AI agent](#set-it-up-with-an-ai-agent)
 - [Use](#use)
 - [How it works](#how-it-works)
 - [Compatibility](#compatibility)
@@ -43,6 +44,9 @@ token, and owns no refresh loop.
 | Profile config | a **keyless** `openai-codex` route — see below |
 
 ## Install
+
+This is the short version. **[INSTALL.md](INSTALL.md) is the full walkthrough** —
+every command, what each screen should show, and what to do when it does not.
 
 ### 1. Declare the route
 
@@ -89,6 +93,8 @@ is not hot-reloadable.
 
 Open **Settings → Codex sign-in**.
 
+![Codex sign-in, not signed in](assets/screenshot-settings.png)
+
 Not signed in, you get one button. Press it and the flow asks which login method
 you want:
 
@@ -102,6 +108,36 @@ second — no page refresh — showing a masked account, the plan tier and the
 token's expiry. **Sign out** deletes the credential record.
 
 The browser never receives an access or refresh token.
+
+## Set it up with an AI agent
+
+The whole of [INSTALL.md](INSTALL.md) is mechanical. Paste this into your
+Harness agent and let it do the work:
+
+```text
+Install and set up the DeepSeek Harness plugin at
+https://github.com/callqh/dsh-codex-oauth for the profile I am running,
+then verify it. Read INSTALL.md in that repository first.
+
+Ground rules:
+- Work only on my profile under ~/.dsh/profiles/. Do not touch any other profile.
+- Before editing that profile's cordis.patch.yml or package.json, copy it to
+  <same name>.bak-<epoch-ms> and tell me you did.
+- The openai-codex route must stay KEYLESS: `providers: { "openai-codex": {} }`.
+  Never add apiKeyEnv to it — that swaps the ChatGPT subscription auth for an
+  API key and breaks the sign-in.
+- If my profile is `desktop`, the dsh CLI refuses to manage it. Install through
+  the in-app plugin manager instead of editing files by hand.
+- Do not restart Harness yourself. Tell me when to, and stop there.
+- Do not add, remove, or upgrade anything else.
+
+When you are done, report:
+1. which profile and which Harness version you found;
+2. whether the route was already declared, and exactly what you changed;
+3. how you installed the plugin, with the exact command or action;
+4. what I should see in Settings -> Codex sign-in;
+5. anything that failed, quoted verbatim.
+```
 
 ## How it works
 
@@ -160,16 +196,20 @@ runtime stops being admitted.
 
 ### Verified
 
-Automated lanes cover the build, 43 test cases across five lanes, and 20 checks
+Automated lanes cover the build, 44 test cases across five lanes, and 26 checks
 in a throwaway profile built from a real profile's patch layer — including
 starting **both** sign-in branches against the real flow and withdrawing them,
-the loopback callback server actually listening, and the port released on
-cancel. See [VERIFICATION.md](VERIFICATION.md).
+the loopback callback server actually listening, the port released on cancel,
+and the card rendering in a real browser with the real module loader, platform
+seed table and slot ledger. See [VERIFICATION.md](VERIFICATION.md).
 
-The one thing no automated lane covers is completing a real sign-in against
-OpenAI and sending a real request to a Codex model — both need a human and a
-ChatGPT account. If that is where it breaks for you, please open an issue with
-the console lines starting with `[dsh-codex-oauth]`.
+A real sign-in against OpenAI has also been completed on this machine: the
+credential record it leaves is a `grant` under `llm-pi-ai/openai-codex`, and the
+card reads it back as a masked account, a plan tier and an expiry.
+
+Still unverified: a request to a Codex **model**. If that is where it breaks for
+you, please open an issue with the console lines starting with
+`[dsh-codex-oauth]`.
 
 ## Troubleshooting
 
@@ -192,7 +232,7 @@ console for that tag; the last one it prints says how far it got.
 ```sh
 pnpm install
 npm run check          # typecheck (host + client) → build → preflight assertions
-npm test               # 43 cases, five lanes
+npm test               # 44 cases, five lanes
 npm run stage-verify -- --dsh <path to @deepseek-ai/dsh/lib/bin.js>
 ```
 
@@ -222,7 +262,7 @@ npm run stage-verify -- --dsh /tmp/dsh-asar/dsh/node_modules/@deepseek-ai/dsh/li
 | `src/client/` | browser half: section registration, card, dictionaries, error boundary |
 | `tests/descriptors.test.mjs` | the Remote descriptors, run against the real typert registry |
 | `scripts/preflight.mjs` | shape and importability assertions |
-| `scripts/stage-verify.mjs` | one-shot end-to-end smoke in a throwaway profile |
+| `scripts/stage-verify.mjs` | one-shot end-to-end smoke in a throwaway profile; `--browser` adds a real-browser lane, `--screenshot <p>` regenerates the image above |
 
 Both `lib/` and `client/client.js` are build outputs of `src/`. `client/client.js`
 is **committed**, because some install paths block build scripts; `lib/` is built
