@@ -1,0 +1,35 @@
+%% dsh-codex-oauth 架构图 / architecture diagram
+%% 蓝色 = 本插件的全部内容。登录（①）经过它，模型请求（②）不经过。
+%% Blue is the whole plugin. It sits on the sign-in path (1), not the request path (2).
+%% 每一行注释都必须有内容：单独一个 %% 会被当成 %%{...}%% 指令的开头。
+%% Every comment line needs text — a bare %% opens a %%{...}%% directive and eats the file.
+%% 重新渲染 / re-render:
+%%   npx -y @mermaid-js/mermaid-cli -i assets/architecture.mmd -o assets/architecture.svg -b transparent
+flowchart TB
+  subgraph signin["① 登录 —— 本插件在这里"]
+    direction LR
+    card["设置 → Codex 登录<br/>client/client.js"] <-->|"Remote"| svc["codexAuth Remote 服务<br/>lib/index.js"]
+    svc -->|"begin / cancel"| authz["ctx.authorization"]
+    authz -->|"运行"| flow["openai-codex flow<br/>由 llm-pi-ai 注册"]
+    flow --> models["pi-ai Models"]
+    models <-->|"OAuth"| oauth["auth.openai.com"]
+  end
+
+  creds[("ctx.credentials<br/>llm-pi-ai/openai-codex")]
+
+  subgraph request["② 模型请求 —— 本插件不在这里"]
+    direction LR
+    picker["模型选择器"] --> adapter["llm-pi-ai 适配器"]
+    adapter -->|"Bearer = token"| api["chatgpt.com/backend-api"]
+  end
+
+  svc -->|"读状态 / 登出"| creds
+  models -->|"commit"| creds
+  creds -.->|"取 token"| adapter
+
+  classDef mine fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#1e3a8a
+  classDef seam fill:#f1f5f9,stroke:#94a3b8,color:#334155
+  classDef ext fill:#fef3c7,stroke:#d97706,color:#78350f
+  class card,svc mine
+  class authz,flow,models,picker,adapter,creds seam
+  class oauth,api ext

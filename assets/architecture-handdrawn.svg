@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1800 1200" width="1800" height="1200" role="img" aria-labelledby="title desc">
+<title id="title">dsh-codex-oauth 手绘架构图</title>
+<desc id="desc">用户通过设置页的 Codex 登录卡片，经 Remote 调用插件宿主服务；宿主服务驱动 Harness 授权、凭证和设置服务；llm-pi-ai 实现 Codex OAuth 并连接 OpenAI。插件不存储 token，也不处理模型请求。</desc>
+<defs>
+  <pattern id="paper" width="44" height="44" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="1.1" fill="#d3c9b5" opacity=".40"/></pattern>
+  <filter id="shadow" x="-10%" y="-12%" width="130%" height="140%"><feDropShadow dx="5" dy="7" stdDeviation="2.5" flood-color="#594d3a" flood-opacity=".13"/></filter>
+  <marker id="arrow" viewBox="0 0 13 13" refX="11" refY="6.5" markerWidth="12" markerHeight="12" orient="auto"><path d="M 2 2 Q 5 5 11 6.5 Q 6 8 2 11" fill="none" stroke="#283d49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  <marker id="arrowCoral" viewBox="0 0 13 13" refX="11" refY="6.5" markerWidth="12" markerHeight="12" orient="auto"><path d="M 2 2 Q 5 5 11 6.5 Q 6 8 2 11" fill="none" stroke="#bf6656" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  <style>
+    text { font-family: "Kaiti SC", "STKaiti", "KaiTi", "PingFang SC", "Microsoft YaHei", sans-serif; fill:#283d49; }
+    .title { font-size:56px; font-weight:700; letter-spacing:1px; }
+    .subtitle { font-size:22px; fill:#687271; }
+    .heading { font-size:33px; font-weight:700; }
+    .subheading { font-size:24px; font-weight:700; }
+    .body { font-size:21px; }
+    .small { font-size:18px; }
+    .tiny { font-size:16px; }
+    .mono { font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+    .caps { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size:17px; font-weight:700; letter-spacing:2px; }
+    .card { stroke:#283d49; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; filter:url(#shadow); }
+    .scribble { fill:none; stroke:#283d49; stroke-width:2.3; stroke-linecap:round; stroke-linejoin:round; opacity:.43; }
+    .divider { fill:none; stroke:#8e9c96; stroke-width:2; stroke-dasharray:7 8; stroke-linecap:round; }
+    .flow { fill:none; stroke:#283d49; stroke-width:3.5; stroke-linecap:round; stroke-linejoin:round; marker-end:url(#arrow); }
+    .flow-alt { fill:none; stroke:#bf6656; stroke-width:3.3; stroke-linecap:round; stroke-linejoin:round; marker-end:url(#arrowCoral); }
+    .ownership { fill:none; stroke:#bf6656; stroke-width:2.5; stroke-dasharray:8 7; stroke-linecap:round; stroke-linejoin:round; marker-end:url(#arrowCoral); }
+  </style>
+</defs>
+<rect width="1800" height="1200" fill="#f8f3e8"/><rect width="1800" height="1200" fill="url(#paper)"/>
+<path d="M65 42 Q 400 33 865 40" stroke="#e7b856" stroke-width="11" opacity=".38" fill="none" stroke-linecap="round"/>
+<text class="title" x="78" y="105">Codex 登录，谁负责哪一段？</text>
+<text class="subtitle" x="82" y="145">dsh-codex-oauth · DeepSeek Harness 插件架构 / 依据当前源码</text>
+<path d="M80 164 Q 892 169 1719 162" fill="none" stroke="#283d49" stroke-width="2.4" stroke-linecap="round"/>
+
+<!-- Setup strip -->
+<path class="card" fill="#fff9e8" d="M84 193 Q 420 187 770 192 L 1705 188 Q 1723 190 1721 209 L 1717 272 Q 1717 286 1697 286 L 90 285 Q 73 283 76 267 L 78 212 Q 77 195 84 193 Z"/>
+<path class="scribble" d="M90 199 Q 800 195 1697 195 M1711 210 L1710 270"/>
+<rect x="99" y="209" width="160" height="36" rx="16" fill="#e8bb66" transform="rotate(-2 179 227)"/>
+<text x="121" y="235" class="caps">启动前配置</text>
+<text x="280" y="237" class="body">profile 加载 bundle 补丁 + client 注入</text>
+<path d="M755 222 l38 0" class="flow"/>
+<text x="818" y="235" class="body">llm-pi-ai 路由：<tspan class="mono" font-size="18">providers: { "openai-codex": {} }</tspan></text>
+<text x="286" y="266" class="small" fill="#a45749">关键：保持 KEYLESS；不要配置 apiKeyEnv，否则改走 API Key 认证。</text>
+
+<!-- region labels -->
+<text class="caps" x="92" y="339">01  浏览器 · CLIENT BUNDLE</text>
+<text class="caps" x="616" y="339">02  HARNESS 宿主 · 插件服务</text>
+<text class="caps" x="1260" y="339">03  上游实现 · 插件不接管</text>
+
+<!-- client panel -->
+<path class="card" fill="#eaf0ec" d="M89 361 Q 271 356 486 361 L 488 779 Q 486 795 474 794 L 92 795 Q 78 793 79 777 L 79 380 Q 79 365 89 361 Z"/>
+<path class="scribble" d="M87 373 Q 276 368 478 374 L 480 780 M87 783 Q 254 788 472 784"/>
+<circle cx="111" cy="391" r="5" fill="#d98a75"/><circle cx="130" cy="391" r="5" fill="#e8bb66"/><circle cx="149" cy="391" r="5" fill="#9fb7a7"/>
+<text class="heading" x="106" y="445">设置 → Codex 登录</text>
+<text class="small mono" x="107" y="481">src/client/index.ts</text>
+<path class="divider" d="M107 500 L457 500"/>
+<text class="body" x="108" y="548">• settings.section 插入登录卡片</text>
+<text class="body" x="108" y="589">• 登录 / 回答 / 取消 / 退出</text>
+<text class="body" x="108" y="630">• 登录中轮询状态（约 1.2 秒）</text>
+<text class="body" x="108" y="671">• 浏览器新标签页或设备码</text>
+<path d="M108 709 Q 280 703 458 708 L 454 770 Q 273 774 105 768 Z" fill="#fff9e8" stroke="#c69a59" stroke-width="2"/>
+<text class="small" x="123" y="735">只显示脱敏账号、套餐和有效期</text>
+<text class="small" x="123" y="760">浏览器不接收 token / refresh token</text>
+
+<!-- service panel -->
+<path class="card" fill="#e4ebf0" d="M605 361 Q 845 356 1126 360 Q 1137 365 1134 378 L 1135 778 Q 1132 794 1118 795 L 609 793 Q 595 791 596 777 L 594 377 Q 596 363 605 361 Z"/>
+<path class="scribble" d="M606 368 Q 867 364 1127 369 M1125 380 Q 1128 590 1127 781"/>
+<text class="heading" x="625" y="420">CodexAuthService</text>
+<text class="small mono" x="626" y="453">src/service.ts · Remote: codexAuth</text>
+<path class="divider" d="M626 475 L1097 475"/>
+<text class="subheading" x="627" y="520">薄适配层 / 唯一正在运行的登录尝试</text>
+<text class="body mono" x="627" y="562">status()   signIn()   answer(value)</text>
+<text class="body mono" x="627" y="599">cancel()   signOut()</text>
+<path d="M624 632 Q 846 626 1105 633 L 1102 757 Q 854 764 622 756 Z" fill="#fffdf7" stroke="#94a8b2" stroke-width="2"/>
+<text class="body" x="644" y="670">调用宿主已有服务，不实现 OAuth 协议</text>
+<text class="small" x="644" y="705">authorization：发起 / 取消 / 观察 flow</text>
+<text class="small" x="644" y="733">credentials：读记录 / 退出时删除记录</text>
+<text class="small" x="644" y="755">settings：只读检查路由是否声明</text>
+
+<!-- pi-ai panel -->
+<path class="card" fill="#eaf0ec" d="M1250 361 Q 1480 355 1698 360 Q 1718 362 1717 377 L 1717 604 Q 1715 619 1697 619 L 1250 618 Q 1235 616 1237 601 L 1236 378 Q 1236 364 1250 361 Z"/>
+<path class="scribble" d="M1246 370 Q 1492 366 1709 370 M1709 386 L1710 605"/>
+<text class="heading" x="1261" y="418">llm-pi-ai</text>
+<text class="small mono" x="1262" y="450">openai-codex provider</text>
+<path class="divider" d="M1260 470 L1688 470"/>
+<text class="body" x="1261" y="510">注册 OAuth flow / 执行授权</text>
+<text class="body" x="1261" y="547">写入 grant / 自动刷新 token</text>
+<text class="body" x="1261" y="584">模型请求走自己的传输层</text>
+
+<!-- remote bridge -->
+<path class="flow" d="M490 530 Q 530 526 583 531"/>
+<rect x="490" y="475" width="106" height="35" rx="10" fill="#fff9e8" stroke="#283d49" stroke-width="1.8" transform="rotate(-3 543 493)"/>
+<text x="506" y="499" class="tiny mono">Remote RPC</text>
+<text x="494" y="573" class="tiny">五个方法 ↔ JSON 状态</text>
+
+<!-- authorization bridge -->
+<path class="flow" d="M1139 511 Q 1181 501 1225 510"/>
+<rect x="1125" y="447" width="127" height="36" rx="10" fill="#fff9e8" stroke="#283d49" stroke-width="1.7" transform="rotate(2 1188 465)"/>
+<text x="1144" y="472" class="tiny mono">begin(oauth)</text>
+<text x="1147" y="550" class="tiny">经 ctx.authorization</text>
+
+<!-- OpenAI panel -->
+<path class="card" fill="#fbe9e0" d="M1251 683 Q 1478 678 1698 681 Q 1716 683 1717 699 L 1716 779 Q 1716 797 1697 797 L 1250 795 Q 1236 791 1237 778 L 1238 701 Q 1237 686 1251 683 Z"/>
+<path class="scribble" d="M1247 692 Q 1470 687 1708 692"/>
+<text class="subheading" x="1261" y="730">OpenAI / ChatGPT 授权服务</text>
+<text class="small" x="1262" y="766">浏览器回调到 127.0.0.1:1455，或设备码流程</text>
+<path class="flow-alt" d="M1484 622 Q 1481 647 1483 674"/>
+
+<!-- lower cards -->
+<text class="caps" x="94" y="866">CONFIG · 只读检查</text>
+<text class="caps" x="619" y="866">CREDENTIAL · 唯一持久化位置</text>
+<text class="caps" x="1260" y="866">安全边界</text>
+<path class="card" fill="#fff9e8" d="M88 886 Q 289 881 480 886 L 481 1056 Q 477 1071 462 1069 L 91 1069 Q 76 1066 79 1051 L 78 903 Q 79 887 88 886 Z"/>
+<text class="subheading" x="104" y="930">profile / settings</text>
+<text class="small mono" x="104" y="963">llm-pi-ai.providers</text>
+<text class="body" x="104" y="1001">openai-codex: {}</text>
+<text class="small" x="104" y="1035">只读 describe()；未配置则提醒用户</text>
+<path class="flow" d="M382 879 Q 384 822 556 811 Q 573 810 593 800"/>
+<text class="tiny" x="397" y="832">路由探测</text>
+
+<path class="card" fill="#fffdf7" d="M606 886 Q 866 880 1124 886 Q 1138 887 1136 903 L 1136 1052 Q 1134 1071 1118 1068 L 606 1069 Q 594 1067 596 1053 L 596 902 Q 597 889 606 886 Z"/>
+<text class="subheading" x="621" y="929">Harness credential store</text>
+<text class="small mono" x="621" y="961">llm-pi-ai/openai-codex</text>
+<text class="small" x="621" y="995">pi-ai 写入 grant：access / refresh / expires / accountId</text>
+<text class="small" x="621" y="1033">插件只读取展示信息；signOut() 删除此记录</text>
+<path class="flow" d="M867 798 Q 864 827 864 874"/>
+<text class="tiny" x="882" y="844">读 / 删除</text>
+
+<path class="card" fill="#fbe9e0" d="M1253 886 Q 1490 881 1700 886 Q 1717 888 1717 901 L 1717 1053 Q 1714 1070 1695 1069 L 1250 1069 Q 1235 1067 1237 1050 L 1236 904 Q 1237 889 1253 886 Z"/>
+<text class="subheading" x="1261" y="929">插件不拥有</text>
+<text class="body" x="1261" y="970">✕ OAuth 协议 / token 刷新</text>
+<text class="body" x="1261" y="1005">✕ 凭证副本 / 浏览器 token</text>
+<text class="body" x="1261" y="1040">✕ Codex 模型请求的转发</text>
+<path class="ownership" d="M1240 580 Q 1186 606 1188 696 L1188 922 Q 1178 972 1146 973"/>
+<text class="tiny" x="1149" y="810" transform="rotate(-90 1149 810)">pi-ai 写入 / 刷新</text>
+
+<!-- Bottom legend -->
+<path d="M78 1101 Q 905 1095 1720 1100" stroke="#283d49" stroke-width="2" fill="none"/>
+<path d="M98 1134 l57 -1" class="flow"/><text class="small" x="169" y="1140">调用 / 数据读取</text>
+<path d="M413 1134 l57 -1" class="ownership"/><text class="small" x="486" y="1140">凭证由上游写入</text>
+<text class="small" x="891" y="1140">注：模型请求另走 llm-pi-ai → chatgpt.com/backend-api，不经过本插件。</text>
+<text class="tiny mono" x="80" y="1176" fill="#87908a">SOURCE: src/client · src/service.ts · src/flow.ts · src/route.ts · README.md · SECURITY.md</text>
+</svg>

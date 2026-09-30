@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 860" width="1600" height="860" role="img" aria-labelledby="title desc">
+<title id="title">dsh-codex-oauth 主要功能流程简图</title>
+<desc id="desc">用户在 Codex 登录卡片点击登录；插件浏览器端通过 Remote 调用宿主服务；宿主服务启动 Harness 现有的 openai-codex OAuth flow；用户在浏览器或设备码页面完成授权；pi-ai 将凭证存入 Harness，插件读取脱敏状态返回卡片。</desc>
+<defs>
+  <pattern id="dots" width="36" height="36" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="1" fill="#baaf9e" opacity=".37"/></pattern>
+  <filter id="lift" x="-10%" y="-10%" width="130%" height="140%"><feDropShadow dx="4" dy="6" stdDeviation="2" flood-color="#514839" flood-opacity=".14"/></filter>
+  <marker id="head" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" orient="auto"><path d="M2 2 Q6 6 10 6 Q6 7 2 10" fill="none" stroke="#293c45" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></marker>
+  <style>
+    text { font-family:"Kaiti SC","STKaiti","KaiTi","PingFang SC","Microsoft YaHei",sans-serif; fill:#293c45; }
+    .title {font-size:57px;font-weight:700}.subtitle{font-size:23px;fill:#657173}
+    .step {font-size:25px;font-weight:700}.heading{font-size:34px;font-weight:700}.body{font-size:23px}.small{font-size:19px}
+    .mono{font-family:Menlo,Consolas,monospace}
+    .card{stroke:#293c45;stroke-width:3;stroke-linejoin:round;filter:url(#lift)}
+    .echo{fill:none;stroke:#293c45;stroke-width:2;opacity:.30;stroke-linecap:round}
+    .arrow{fill:none;stroke:#293c45;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;marker-end:url(#head)}
+  </style>
+</defs>
+<rect width="1600" height="860" fill="#faf5eb"/><rect width="1600" height="860" fill="url(#dots)"/>
+<path d="M75 43 Q 400 32 762 41" stroke="#e6b458" stroke-width="12" opacity=".43" fill="none" stroke-linecap="round"/>
+<text class="title" x="80" y="100">一次 Codex 登录，插件做了什么？</text>
+<text class="subtitle" x="83" y="144">主流程简图 · 只画这个插件接入、调用和展示的部分</text>
+<path d="M82 163 Q805 169 1514 163" stroke="#293c45" stroke-width="2" fill="none"/>
+
+<!-- user-facing card -->
+<path class="card" fill="#e6eee9" d="M91 229 Q282 224 474 229 L478 510 Q476 526 459 526 L89 526 Q75 523 77 507 L77 246 Q79 230 91 229 Z"/>
+<path class="echo" d="M88 240 Q 270 235 465 240 M467 249 L467 508"/>
+<circle cx="123" cy="271" r="23" fill="#e4b75f" stroke="#293c45" stroke-width="2"/><text class="step" x="116" y="280">1</text>
+<text class="heading" x="162" y="281">登录卡片</text>
+<text class="small mono" x="109" y="323">设置 → Codex 登录</text>
+<path d="M105 347 Q 276 350 447 346" stroke="#9aaa9f" stroke-width="2" stroke-dasharray="8 7" fill="none"/>
+<text class="body" x="110" y="389">用户点「登录」</text>
+<text class="body" x="110" y="428">显示授权链接 / 设备码</text>
+<text class="body" x="110" y="467">轮询并展示登录状态</text>
+
+<!-- plugin service -->
+<path class="card" fill="#e3ebf2" d="M606 229 Q792 223 982 229 L987 509 Q984 527 968 526 L607 526 Q590 526 592 505 L592 244 Q594 229 606 229 Z"/>
+<path class="echo" d="M603 239 Q794 235 975 240 M977 246 L978 508"/>
+<circle cx="636" cy="271" r="23" fill="#e4b75f" stroke="#293c45" stroke-width="2"/><text class="step" x="629" y="280">2</text>
+<text class="heading" x="675" y="281">插件宿主服务</text>
+<text class="small mono" x="621" y="323">CodexAuthService</text>
+<path d="M616 347 Q 790 350 957 346" stroke="#9aaa9f" stroke-width="2" stroke-dasharray="8 7" fill="none"/>
+<text class="body" x="621" y="389">转调现成的授权流程</text>
+<text class="body" x="621" y="428">接收提示、回答与取消</text>
+<text class="body" x="621" y="467">读取并脱敏登录状态</text>
+
+<!-- existing upstream -->
+<path class="card" fill="#f8e8df" d="M1114 229 Q1303 223 1502 229 L1505 509 Q1504 526 1489 526 L1111 526 Q1096 524 1099 508 L1099 245 Q1101 230 1114 229 Z"/>
+<path class="echo" d="M1110 241 Q1293 234 1492 240 M1494 247 L1496 508"/>
+<circle cx="1144" cy="271" r="23" fill="#e4b75f" stroke="#293c45" stroke-width="2"/><text class="step" x="1137" y="280">3</text>
+<text class="heading" x="1182" y="281">Harness + pi-ai</text>
+<text class="small mono" x="1128" y="323">openai-codex OAuth</text>
+<path d="M1124 347 Q 1300 350 1477 346" stroke="#bf9989" stroke-width="2" stroke-dasharray="8 7" fill="none"/>
+<text class="body" x="1129" y="389">执行浏览器 / 设备码授权</text>
+<text class="body" x="1129" y="428">与 OpenAI 交互并保存凭证</text>
+<text class="body" x="1129" y="467">后续刷新也由 pi-ai 负责</text>
+
+<!-- top arrows -->
+<path class="arrow" d="M481 371 Q532 363 580 371"/>
+<text class="small mono" x="496" y="341">Remote</text>
+<path class="arrow" d="M990 371 Q1039 365 1086 371"/>
+<text class="small mono" x="1005" y="341">begin()</text>
+
+<!-- return path -->
+<path class="arrow" d="M1303 531 L1304 620 Q1300 640 1276 640 L282 640 Q262 641 261 617 L261 537"/>
+<rect x="502" y="595" width="607" height="79" rx="17" fill="#fffaf0" stroke="#c79b56" stroke-width="2.5" transform="rotate(-.5 805 635)"/>
+<text class="step" x="531" y="630">4</text>
+<text class="body" x="571" y="630">授权完成 → 状态返回卡片</text>
+<text class="small" x="571" y="658">只显示脱敏账号、套餐、有效期；凭证留在宿主侧</text>
+
+<!-- bottom note -->
+<path d="M81 722 Q 801 717 1515 724" fill="none" stroke="#293c45" stroke-width="2"/>
+<text class="body" x="88" y="774">一句话：插件负责“让人登录并看到结果”，OAuth、token 存储与刷新仍由 Harness / pi-ai 负责。</text>
+<text class="small" x="89" y="817" fill="#7a847e">退出登录：卡片 → 插件服务 → 删除 Harness 中的 llm-pi-ai/openai-codex 凭证记录。</text>
+</svg>
