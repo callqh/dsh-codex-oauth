@@ -22,7 +22,7 @@
  * exact `window.__ModuleLoader__.load({ id: "dsh-codex-oauth"` banner.
  */
 import { readFile } from 'node:fs/promises'
-import { basename, dirname, relative, resolve as resolvePath } from 'node:path'
+import { basename, dirname, relative, resolve as resolvePath, sep as pathSep } from 'node:path'
 import { defineConfig } from 'tsdown'
 import { transform } from 'lightningcss'
 
@@ -67,11 +67,17 @@ export default defineConfig({
     resolveId(source: string, importer: string | undefined) {
       if (!source.endsWith('.module.css')) return null
       const abs = importer !== undefined ? resolvePath(dirname(importer), source) : source
-      return CSS_VIRTUAL_PREFIX + abs + CSS_VIRTUAL_SUFFIX
+      // The virtual id is REPO-RELATIVE, not absolute, and that is load-bearing
+      // twice over. Rolldown writes the id into a `//#region` comment in the
+      // emitted bundle, so an absolute path would ship the builder's home
+      // directory to every user and make the committed artifact differ per
+      // machine. It is resolved back against the build's working directory in
+      // `load` below.
+      return CSS_VIRTUAL_PREFIX + relative(process.cwd(), abs).split(pathSep).join('/') + CSS_VIRTUAL_SUFFIX
     },
     async load(this: { addWatchFile(file: string): void }, virtualId: string) {
       if (!virtualId.startsWith(CSS_VIRTUAL_PREFIX)) return null
-      const fileId = virtualId.slice(CSS_VIRTUAL_PREFIX.length, -CSS_VIRTUAL_SUFFIX.length)
+      const fileId = resolvePath(process.cwd(), virtualId.slice(CSS_VIRTUAL_PREFIX.length, -CSS_VIRTUAL_SUFFIX.length))
       // The virtual id otherwise hides the physical stylesheet from the watch graph.
       this.addWatchFile(fileId)
       const source = await readFile(fileId)

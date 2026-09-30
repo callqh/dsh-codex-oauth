@@ -96,7 +96,7 @@ window.__ModuleLoader__.load({
 			throw new Error(typeof message === "string" && message.length > 0 ? message : "与 Harness 主进程通信失败");
 		}
 		//#endregion
-		//#region \0codex-css:/Users/liuqh/lqh/deepseek-workspace/dsh-codex-oauth/src/client/CodexSignIn.module.css.mjs
+		//#region \0codex-css:src/client/CodexSignIn.module.css.mjs
 		const css = ".NEjy1a_root{flex-direction:column;gap:10px;display:flex}.NEjy1a_head{align-items:center;gap:8px;min-height:24px;display:flex}.NEjy1a_title{color:var(--dsw-alias-label-primary);font-size:13px;line-height:22px}.NEjy1a_headSpacer{flex:1}.NEjy1a_body{flex-direction:column;gap:6px;display:flex}.NEjy1a_row{align-items:baseline;gap:8px;font-size:13px;line-height:22px;display:flex}.NEjy1a_label{color:var(--dsw-alias-label-tertiary);flex:none;min-width:56px}.NEjy1a_value{color:var(--dsw-alias-label-primary);overflow-wrap:anywhere;min-width:0}.NEjy1a_hint{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px}.NEjy1a_error{color:var(--dsw-alias-state-error-primary);font-size:12px;line-height:18px}.NEjy1a_notice{color:var(--dsw-alias-label-secondary);font-size:12px;line-height:18px}.NEjy1a_done{color:var(--dsw-alias-state-success-primary,var(--dsw-alias-label-secondary));font-size:12px;line-height:18px}.NEjy1a_actions{flex-wrap:wrap;align-items:center;gap:8px;display:flex}.NEjy1a_device{flex-direction:column;gap:6px;display:flex}.NEjy1a_code{background:var(--dsw-alias-bg-module-platform,var(--dsw-alias-bg-layer-2));border:1px dashed var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-md,8px);color:var(--dsw-alias-label-primary);letter-spacing:3px;align-self:flex-start;padding:6px 12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:20px;font-weight:600}.NEjy1a_link{color:var(--dsw-alias-brand-primary);overflow-wrap:anywhere;font-size:12px;text-decoration:none}.NEjy1a_link:hover{text-decoration:underline}.NEjy1a_choices{flex-direction:column;gap:6px;display:flex}.NEjy1a_choice{text-align:left;flex-direction:column;align-items:flex-start;gap:1px;display:flex}.NEjy1a_choiceHint{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px}.NEjy1a_answerRow{flex-wrap:wrap;align-items:center;gap:8px;display:flex}.NEjy1a_answerRow>:first-child{flex:1;min-width:180px}.NEjy1a_spin{flex:none;animation:1s linear infinite NEjy1a_spin}@keyframes NEjy1a_spin{to{transform:rotate(360deg)}}";
 		const tagId = "dsh-codex-oauth/CodexSignIn.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
@@ -107,27 +107,27 @@ window.__ModuleLoader__.load({
 			document.head.appendChild(tag);
 		}
 		var CodexSignIn_module_css_default = {
-			"actions": "NEjy1a_actions",
-			"code": "NEjy1a_code",
 			"link": "NEjy1a_link",
-			"hint": "NEjy1a_hint",
-			"error": "NEjy1a_error",
-			"label": "NEjy1a_label",
-			"choiceHint": "NEjy1a_choiceHint",
 			"answerRow": "NEjy1a_answerRow",
-			"spin": "NEjy1a_spin",
-			"body": "NEjy1a_body",
-			"done": "NEjy1a_done",
-			"headSpacer": "NEjy1a_headSpacer",
-			"choice": "NEjy1a_choice",
-			"row": "NEjy1a_row",
 			"device": "NEjy1a_device",
-			"value": "NEjy1a_value",
-			"head": "NEjy1a_head",
+			"choice": "NEjy1a_choice",
+			"code": "NEjy1a_code",
+			"error": "NEjy1a_error",
+			"headSpacer": "NEjy1a_headSpacer",
+			"label": "NEjy1a_label",
 			"choices": "NEjy1a_choices",
-			"root": "NEjy1a_root",
+			"head": "NEjy1a_head",
+			"value": "NEjy1a_value",
+			"done": "NEjy1a_done",
+			"spin": "NEjy1a_spin",
+			"row": "NEjy1a_row",
+			"body": "NEjy1a_body",
 			"title": "NEjy1a_title",
-			"notice": "NEjy1a_notice"
+			"root": "NEjy1a_root",
+			"hint": "NEjy1a_hint",
+			"notice": "NEjy1a_notice",
+			"choiceHint": "NEjy1a_choiceHint",
+			"actions": "NEjy1a_actions"
 		};
 		//#endregion
 		//#region src/client/CodexSignIn.tsx

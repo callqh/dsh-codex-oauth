@@ -22,6 +22,17 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 /**
+ * Shapes that only ever appear in a path from the machine that ran the build:
+ * a POSIX home directory, a macOS private temp dir, or a Windows drive path.
+ */
+const HOST_PATH_PATTERNS = [
+  /\/(?:Users|home)\/[A-Za-z0-9._-]+\//,
+  /\/private\/var\/folders\//,
+  /[A-Za-z]:\\+[Uu]sers\\/,
+  /\/tmp\/dsh-[a-z-]+/,
+]
+
+/**
  * The page's platform seed table, read from the web frontend's boot code on
  * 0.2.0-rc.2 (`staticModules`). These are the only specifiers a plugin bundle
  * may leave external; everything else it imports has to be inlined by tsdown.
@@ -270,6 +281,20 @@ if (await isFile(CLIENT)) {
   // A CSS module that failed to compile leaves the class map empty and the
   // card unstyled; the inlined tag is what proves the plugin ran.
   check('the stylesheet is inlined into the bundle', bundle.includes('data-plugin-css'))
+}
+
+// ------------------------------------------------------- published artifacts --
+// Both artifacts are committed and therefore published, so a path from the
+// machine that built them is a leak AND a reproducibility bug: the same source
+// produces a different bundle on every developer's checkout. This caught a real
+// one — rolldown writes a module's id into a `//#region` comment, and the CSS
+// virtual id used to be an absolute path.
+const BUILD_OUTPUTS = [CLIENT, 'lib/index.js', 'lib/service.js', 'lib/flow.js', 'lib/route.js', 'lib/wire.js']
+for (const relativePath of BUILD_OUTPUTS) {
+  if (!(await isFile(relativePath))) continue
+  const text = await readFile(join(root, relativePath), 'utf8')
+  const found = HOST_PATH_PATTERNS.map((pattern) => pattern.exec(text)?.[0]).filter(Boolean)
+  check(`${relativePath} carries no build-machine path`, found.length === 0, found.join(', '))
 }
 
 // ------------------------------------------------------------------ report --
