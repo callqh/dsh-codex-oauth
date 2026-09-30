@@ -4,7 +4,7 @@
 怎么工作；这份文件只讲怎么把它跑起来。
 
 **多数人应该直接从下面这段提示词开始。** 把它交给你的 Harness agent，整件事它都会
-做完。往下的分步说明是同一套流程的展开写法——给自己动手用，或者用来核对它干了什么。
+做完。往下是同一套流程的详细步骤，想自己动手、或者要核对 agent 干了什么时看。
 
 - [交给 AI agent 做](#交给-ai-agent-做)
 - [环境要求](#环境要求)
@@ -48,7 +48,7 @@ https://github.com/callqh/dsh-codex-oauth
 
 ## 环境要求
 
-- **DeepSeek Harness `0.2.0-rc.2`** —— 本插件构建与验证所针对的版本线。用
+- **DeepSeek Harness `0.2.0-rc.2`** —— 这个插件就是针对这条版本线构建和验证的。用
   `dsh --version`，或在 **设置 → 通用** 里看版本号。
 - 一个 **ChatGPT Plus 或 Pro** 订阅。
 - 对 DSH home 的写权限（默认 `~/.dsh`，或 `$DSH_HOME`）。
@@ -125,7 +125,7 @@ error: profile "desktop" is managed exclusively by the Electron application
 
 ### 由 CLI 管理的 profile → `dsh plugin add`
 
-`dsh plugin` 是 profile 内 `pnpm` 的透传，所以接受同样的写法：
+`dsh plugin` 就是在 profile 里跑 `pnpm`，所以写法完全一样：
 
 ```sh
 # 从 GitHub 安装
@@ -165,8 +165,8 @@ pnpm install
 
 ## 4. 重启
 
-profile 的 bundle 列表是在**进程启动时**组装的，所以不重启就不会加载。退出并重新
-打开——桌面端指的是退出应用本身，不是刷新窗口。
+profile 的 bundle 列表是**进程启动时**组装的，不重启就不会加载。退出再打开——桌面端
+指的是退出整个应用，不是刷新窗口。
 
 ## 5. 检查卡片
 
