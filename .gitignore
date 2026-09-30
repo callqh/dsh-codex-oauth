@@ -1,9 +1,16 @@
-# Build output that is NOT committed.
+# Build outputs are COMMITTED on purpose, both of them.
 #
-# lib/ is produced by `npm run build` and is what the loader imports, but it is
-# generated from src/ and the profile installs from this checkout, so keeping
-# it out of git keeps the diff about the source.
-lib/
+# `cordis.patch.yml` points the loader at `./lib/index.js`, and a bundle listed
+# in a profile's `dsh.profile.bundles` that cannot be imported fails the whole
+# application boot — not just this plugin. An install that does not approve
+# build scripts would leave that path missing, so both artifacts ship:
+#
+#   client/client.js  the browser bundle
+#   lib/              the host entry
+#
+# `prepare` still rebuilds them when build scripts do run, so a checkout that
+# builds is never behind. Run `npm run check` before committing a change under
+# `src/`; it rebuilds both and then asserts their shape.
 node_modules/
 *.tsbuildinfo
 .DS_Store
