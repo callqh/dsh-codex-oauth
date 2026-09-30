@@ -21,8 +21,8 @@ DeepSeek Harness 已经具备跑 Codex 的全部能力：浏览器与设备码�
 ## 目录
 
 - [环境要求](#环境要求)
-- [安装](#安装)
 - [交给 AI agent 做](#交给-ai-agent-做)
+- [安装](#安装)
 - [使用](#使用)
 - [工作原理](#工作原理)
 - [兼容性](#兼容性)
@@ -39,6 +39,27 @@ DeepSeek Harness 已经具备跑 Codex 的全部能力：浏览器与设备码�
 | 运行面 | 任何挂载了 `dsh-base` 的 profile（桌面端、`web`、headless） |
 | 账号 | ChatGPT Plus 或 Pro 订阅 |
 | Profile 配置 | 一条 **keyless** 的 `openai-codex` 路由 —— 见下 |
+
+## 交给 AI agent 做
+
+[INSTALL.zh.md](INSTALL.zh.md) 里的每一步都是机械操作。把下面这段贴进你的 Harness
+agent 让它做：
+
+```text
+请为我现在使用的 profile 安装这个 DeepSeek Harness 插件：
+https://github.com/callqh/dsh-codex-oauth
+装完做验证。确切步骤在那个仓库的 INSTALL.md 里。
+
+硬性要求：
+- 只动 ~/.dsh/profiles/ 下我正在用的那一个 profile，改任何文件前先备份。
+- openai-codex 路由必须保持 KEYLESS：providers: { "openai-codex": {} }。
+  绝对不要加 apiKeyEnv —— 那会把 ChatGPT 订阅认证换成 API Key。
+- 如果我的 profile 是 `desktop`，dsh CLI 拒绝管理它，请用应用内的插件管理器。
+- 不要自己重启 Harness，告诉我什么时候重启。
+
+做完汇报：你找到的 profile 与版本、你改了什么、怎么装的、我应该在
+「设置 -> Codex 登录」里看到什么，以及任何失败的原文错误信息。
+```
 
 ## 安装
 
@@ -98,36 +119,6 @@ dsh plugin --profile web add dsh-codex-oauth
 账号、套餐等级和令牌有效期。点 **退出登录** 会删除凭证记录。
 
 浏览器端任何时候都拿不到 access / refresh 令牌明文。
-
-## 交给 AI agent 做
-
-[INSTALL.zh.md](INSTALL.zh.md) 里的每一步都是机械操作。把下面这段贴进你的 Harness
-agent 让它做：
-
-```text
-请为我现在使用的 profile 安装并配置这个 DeepSeek Harness 插件：
-https://github.com/callqh/dsh-codex-oauth
-装完做验证。先读那个仓库里的 INSTALL.md。
-
-硬性要求：
-- 只动 ~/.dsh/profiles/ 下我正在用的那一个 profile，不要碰其它 profile。
-- 改那个 profile 的 cordis.patch.yml 或 package.json 之前，先复制一份到
-  同名 .bak-<epoch-ms>，并告诉我你做了备份。
-- openai-codex 路由必须保持 KEYLESS：`providers: { "openai-codex": {} }`。
-  绝对不要给它加 apiKeyEnv —— 那会把 ChatGPT 订阅认证换成 API Key，登录就废了。
-- 如果我的 profile 是 `desktop`，dsh CLI 拒绝管理它。请改用应用内的插件管理器，
-  不要手工改文件。
-- 不要自己重启 Harness。告诉我什么时候重启，然后就停在那里。
-- 不要增删或升级其它任何东西。
-
-做完请汇报：
-1. 你找到的是哪个 profile、哪个 Harness 版本；
-2. 路由是否已存在，以及你具体改了什么；
-3. 你用哪种方式安装的插件，附上确切命令或操作；
-4. 我应该在「设置 -> Codex 登录」里看到什么；
-5. 任何失败，原文引用错误信息。
-```
-
 ## 工作原理
 
 四项能力属于 Harness，插件只负责把它们接起来。

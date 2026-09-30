@@ -3,9 +3,10 @@
 **dsh-codex-oauth** 的完整安装步骤。[README](README.zh.md) 讲的是这个插件是什么、
 怎么工作；这份文件只讲怎么把它跑起来。
 
-如果你不想手工做，[文件末尾有一段提示词](#交给-ai-agent-做)，可以直接交给你的
-Harness agent 执行。
+**多数人应该直接从下面这段提示词开始。** 把它交给你的 Harness agent，整件事它都会
+做完。往下的分步说明是同一套流程的展开写法——给自己动手用，或者用来核对它干了什么。
 
+- [交给 AI agent 做](#交给-ai-agent-做)
 - [环境要求](#环境要求)
 - [1. 确认你在哪个 profile](#1-确认你在哪个-profile)
 - [2. 声明路由](#2-声明路由)
@@ -16,7 +17,34 @@ Harness agent 执行。
 - [7. 使用 Codex 模型](#7-使用-codex-模型)
 - [卸载](#卸载)
 - [排错](#排错)
-- [交给 AI agent 做](#交给-ai-agent-做)
+
+## 交给 AI agent 做
+
+下面这些全是机械操作。把这段贴进你的 Harness agent 让它做：
+
+```text
+请为我现在使用的 profile 安装并配置这个 DeepSeek Harness 插件：
+https://github.com/callqh/dsh-codex-oauth
+装完做验证。先读那个仓库里的 INSTALL.md。
+
+硬性要求：
+- 只动 ~/.dsh/profiles/ 下我正在用的那一个 profile，不要碰其它 profile。
+- 改那个 profile 的 cordis.patch.yml 或 package.json 之前，先复制一份到
+  同名 .bak-<epoch-ms>，并告诉我你做了备份。
+- openai-codex 路由必须保持 KEYLESS：`providers: { "openai-codex": {} }`。
+  绝对不要给它加 apiKeyEnv —— 那会把 ChatGPT 订阅认证换成 API Key，登录就废了。
+- 如果我的 profile 是 `desktop`，dsh CLI 拒绝管理它。请改用应用内的插件管理器，
+  不要手工改文件。
+- 不要自己重启 Harness。告诉我什么时候重启，然后就停在那里。
+- 不要增删或升级其它任何东西。
+
+做完请汇报：
+1. 你找到的是哪个 profile、哪个 Harness 版本；
+2. 路由是否已存在，以及你具体改了什么；
+3. 你用哪种方式安装的插件，附上确切命令或操作；
+4. 我应该在「设置 -> Codex 登录」里看到什么；
+5. 任何失败，原文引用错误信息。
+```
 
 ## 环境要求
 
@@ -218,31 +246,3 @@ profile 的 bundle 列表是在**进程启动时**组装的，所以不重启就
 那条留着无妨），然后重启。
 
 第 1、2 步让你留的 `*.bak-<时间戳>` 备份就是为这种情况准备的。
-
-## 交给 AI agent 做
-
-上面这些全是机械操作。把下面这段贴进你的 Harness agent 让它做：
-
-```text
-请为我现在使用的 profile 安装并配置这个 DeepSeek Harness 插件：
-https://github.com/callqh/dsh-codex-oauth
-装完做验证。先读那个仓库里的 INSTALL.md。
-
-硬性要求：
-- 只动 ~/.dsh/profiles/ 下我正在用的那一个 profile，不要碰其它 profile。
-- 改那个 profile 的 cordis.patch.yml 或 package.json 之前，先复制一份到
-  同名 .bak-<epoch-ms>，并告诉我你做了备份。
-- openai-codex 路由必须保持 KEYLESS：`providers: { "openai-codex": {} }`。
-  绝对不要给它加 apiKeyEnv —— 那会把 ChatGPT 订阅认证换成 API Key，登录就废了。
-- 如果我的 profile 是 `desktop`，dsh CLI 拒绝管理它。请改用应用内的插件管理器，
-  不要手工改文件。
-- 不要自己重启 Harness。告诉我什么时候重启，然后就停在那里。
-- 不要增删或升级其它任何东西。
-
-做完请汇报：
-1. 你找到的是哪个 profile、哪个 Harness 版本；
-2. 路由是否已存在，以及你具体改了什么；
-3. 你用哪种方式安装的插件，附上确切命令或操作；
-4. 我应该在「设置 -> Codex 登录」里看到什么；
-5. 任何失败，原文引用错误信息。
-```

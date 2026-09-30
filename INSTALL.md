@@ -3,9 +3,11 @@
 Step-by-step setup for **dsh-codex-oauth**. The [README](README.md) explains
 what the plugin is and how it works; this file is only about getting it running.
 
-If you would rather not do this by hand, [there is a prompt at the
-bottom](#doing-this-with-an-ai-agent) you can hand to your Harness agent.
+**Most people should start with the prompt below.** Hand it to your Harness
+agent and it will do the whole thing. The walkthrough underneath is the same
+procedure written out — for doing it yourself, or for checking its work.
 
+- [Give this to your AI agent](#give-this-to-your-ai-agent)
 - [What you need](#what-you-need)
 - [1. Find your profile](#1-find-your-profile)
 - [2. Declare the route](#2-declare-the-route)
@@ -16,7 +18,36 @@ bottom](#doing-this-with-an-ai-agent) you can hand to your Harness agent.
 - [7. Use the Codex models](#7-use-the-codex-models)
 - [Uninstall](#uninstall)
 - [Troubleshooting](#troubleshooting)
-- [Doing this with an AI agent](#doing-this-with-an-ai-agent)
+
+## Give this to your AI agent
+
+Everything below is mechanical. Paste this into your Harness agent and let it do
+the work:
+
+```text
+Install and set up the DeepSeek Harness plugin at
+https://github.com/callqh/dsh-codex-oauth for the profile I am running,
+then verify it. Read INSTALL.md in that repository first.
+
+Ground rules:
+- Work only on my profile under ~/.dsh/profiles/. Do not touch any other profile.
+- Before editing that profile's cordis.patch.yml or package.json, copy it to
+  <same name>.bak-<epoch-ms> and tell me you did.
+- The openai-codex route must stay KEYLESS: `providers: { "openai-codex": {} }`.
+  Never add apiKeyEnv to it — that swaps the ChatGPT subscription auth for an
+  API key and breaks the sign-in.
+- If my profile is `desktop`, the dsh CLI refuses to manage it. Install through
+  the in-app plugin manager instead of editing files by hand.
+- Do not restart Harness yourself. Tell me when to, and stop there.
+- Do not add, remove, or upgrade anything else.
+
+When you are done, report:
+1. which profile and which Harness version you found;
+2. whether the route was already declared, and exactly what you changed;
+3. how you installed the plugin, with the exact command or action;
+4. what I should see in Settings -> Codex sign-in;
+5. anything that failed, quoted verbatim.
+```
 
 ## What you need
 
@@ -233,33 +264,3 @@ patch; that works. To fix it by hand instead, remove `"dsh-codex-oauth"` from
 entry — it is harmless) and restart.
 
 Keep the `*.bak-<timestamp>` copies you made in steps 1 and 2 for exactly this.
-
-## Doing this with an AI agent
-
-Everything above is mechanical. Paste this into your Harness agent and let it do
-the work:
-
-```text
-Install and set up the DeepSeek Harness plugin at
-https://github.com/callqh/dsh-codex-oauth for the profile I am running,
-then verify it. Read INSTALL.md in that repository first.
-
-Ground rules:
-- Work only on my profile under ~/.dsh/profiles/. Do not touch any other profile.
-- Before editing that profile's cordis.patch.yml or package.json, copy it to
-  <same name>.bak-<epoch-ms> and tell me you did.
-- The openai-codex route must stay KEYLESS: `providers: { "openai-codex": {} }`.
-  Never add apiKeyEnv to it — that swaps the ChatGPT subscription auth for an
-  API key and breaks the sign-in.
-- If my profile is `desktop`, the dsh CLI refuses to manage it. Install through
-  the in-app plugin manager instead of editing files by hand.
-- Do not restart Harness yourself. Tell me when to, and stop there.
-- Do not add, remove, or upgrade anything else.
-
-When you are done, report:
-1. which profile and which Harness version you found;
-2. whether the route was already declared, and exactly what you changed;
-3. how you installed the plugin, with the exact command or action;
-4. what I should see in Settings -> Codex sign-in;
-5. anything that failed, quoted verbatim.
-```
