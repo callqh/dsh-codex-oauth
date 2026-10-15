@@ -47,7 +47,7 @@ export const zh = {
   working: '处理中…',
 
   done: '登录成功。Codex 模型现在可以使用了。',
-  cancelled: '已取消登录，没有产生任何凭证。',
+  cancelled: '已取消登录',
   failed: '登录没有完成',
 
   seamsMissing: 'Harness 的授权或凭证服务没有挂载，这台机器上无法完成登录。',
@@ -91,7 +91,7 @@ export const en = {
   working: 'Working…',
 
   done: 'Signed in. Codex models are ready to use.',
-  cancelled: 'Sign-in cancelled. Nothing was stored.',
+  cancelled: 'Sign-in cancelled.',
   failed: 'Sign-in did not finish',
 
   seamsMissing: 'This Harness has no authorization or credential service mounted, so signing in is not possible here.',

@@ -76,7 +76,7 @@ const SECTION_ORDER = 14
 export function apply(ctx: ClientContext): void {
   console.info(`${TAG} client apply`)
 
-  const missing = missingPrimitives(primitives as unknown as Record<string, unknown>)
+  const missing = missingPrimitives(primitives)
   if (missing.length > 0) {
     // Nothing can be rendered, so this is the only surface left. Say exactly
     // which names are absent: "the card did not appear" is not a diagnosis.
@@ -94,18 +94,16 @@ export function apply(ctx: ClientContext): void {
   const t = bindMessages(lookup)
 
   ctx.effect(() => {
-    let dispose: (() => Promise<void>) | undefined
-    let unloaded = false
-    void ctx.remote.$mount(CONTRIBUTION).then((off) => {
-      console.info(`${TAG} Remote namespace ${JSON.stringify(NAMESPACE)} mounted`)
-      if (unloaded) void off()
-      else dispose = off
-    }).catch((error: unknown) => {
-      console.warn(`${TAG} could not mount the ${NAMESPACE} Remote namespace`, error)
-    })
+    const mounted = ctx.remote.$mount(CONTRIBUTION).then(
+      dispose => ({ dispose }),
+      (error: unknown) => {
+        console.warn(`${TAG} could not mount the ${NAMESPACE} Remote namespace`, error)
+        return undefined
+      },
+    )
     return async () => {
-      unloaded = true
-      await dispose?.()
+      const contribution = await mounted
+      await contribution?.dispose()
     }
   }, 'codex-oauth: Remote contribution')
 

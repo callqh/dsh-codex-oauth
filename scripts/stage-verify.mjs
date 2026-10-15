@@ -206,7 +206,7 @@ async function signInProbe(url, cookie, check) {
   } finally {
     // Always withdrawn: a cancelled attempt commits nothing and leaves no
     // half-finished authorization behind.
-    const cancelled = await callRemote(url, cookie, 'codexAuth/cancel')
+    const cancelled = await callRemote(url, cookie, 'codexAuth/cancel', { attemptId: started.value.id })
     check('withdrawing the probe attempt settles it as cancelled', cancelled?.value?.phase === 'cancelled', JSON.stringify(cancelled?.value ?? cancelled?.error ?? null))
   }
 }
@@ -345,10 +345,14 @@ async function browserLoginProbe(url, cookie, check) {
     while (Date.now() < deadline) {
       await new Promise((done) => setTimeout(done, 300))
       const current = await callRemote(url, cookie, 'codexAuth/status')
-      if (current?.value?.attempt?.prompt?.kind === 'select') break
+      if (current?.value?.attempt?.prompt?.kind === 'select') {
+        prompt = current.value.attempt.prompt
+        break
+      }
     }
-    const answered = await callRemote(url, cookie, 'codexAuth/answer', { value: 'browser' })
+    const answered = await callRemote(url, cookie, 'codexAuth/answer', { attemptId: started.value.id, promptId: prompt?.id, value: 'browser' })
     check('answering the login-method question is accepted', answered?.ok === true, JSON.stringify(answered?.error ?? null))
+    prompt = null
 
     while (Date.now() < deadline) {
       await new Promise((done) => setTimeout(done, 300))
@@ -386,7 +390,7 @@ async function browserLoginProbe(url, cookie, check) {
       `HTTP ${String(callbackStatus)} ${callbackBody.slice(0, 80)}`,
     )
   } finally {
-    const cancelled = await callRemote(url, cookie, 'codexAuth/cancel')
+    const cancelled = await callRemote(url, cookie, 'codexAuth/cancel', { attemptId: started.value.id })
     check('the browser-branch attempt is withdrawn', cancelled?.value?.phase === 'cancelled', JSON.stringify(cancelled?.value ?? cancelled?.error ?? null))
     await new Promise((done) => setTimeout(done, 700))
     let released = false
@@ -492,10 +496,10 @@ try {
 
   // The one method with an argument: this is what proves the wire field the
   // client declares matches the host method's own parameter name.
-  const answered = await callRemote(url, session.cookie, 'codexAuth/answer', { value: 'browser' })
+  const answered = await callRemote(url, session.cookie, 'codexAuth/answer', { attemptId: 'expired', promptId: 'expired', value: 'browser' })
   check(
     'codexAuth/answer reaches the host method with its argument',
-    answered?.ok === false && /没有等待回答的问题/.test(answered?.error?.message ?? ''),
+    answered?.ok === false && /expired/.test(answered?.error?.message ?? ''),
     JSON.stringify(answered?.error ?? answered?.value ?? null),
   )
 

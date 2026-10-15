@@ -200,7 +200,8 @@ export function CodexSignIn({ getApi, t }: CodexSignInProps): ReactElement {
 
   const send = (value: string): void => {
     void run(async (api) => {
-      unwrap(await api.answer(value))
+      if (status?.attempt.id == null || status.attempt.prompt === null) return
+      unwrap(await api.answer(status.attempt.id, status.attempt.prompt.id, value))
       setAnswer('')
       await reload()
     })
@@ -208,8 +209,11 @@ export function CodexSignIn({ getApi, t }: CodexSignInProps): ReactElement {
 
   const cancel = (): void => {
     void run(async (api) => {
-      unwrap(await api.cancel())
-      setFlash({ tone: 'notice', text: t('cancelled') })
+      if (status?.attempt.id == null) return
+      const result = unwrap(await api.cancel(status.attempt.id))
+      setFlash(result.phase === 'authorized'
+        ? { tone: 'done', text: t('done') }
+        : { tone: 'notice', text: t('cancelled') })
       await reload()
     })
   }

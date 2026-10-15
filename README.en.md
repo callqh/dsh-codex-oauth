@@ -15,6 +15,8 @@ nothing calls it.
 This plugin is that call, and nothing else. It implements no OAuth, stores no
 token, and owns no refresh loop.
 
+Login attempts and questions carry independent IDs, so stale answers and cancellations are rejected. Browser-callback withdrawal removes the pending question. Cancellation waits for the actual outcome; sign-out waits for authorization before deleting its credential. Update the Host and browser artifacts together.
+
 ## Set it up with an AI agent
 
 Paste this into your Harness agent:
@@ -82,7 +84,7 @@ and it flips there without a page refresh. Sign out deletes the credential.
 
 ## Verified
 
-- `npm test` — 44 cases across five lanes.
+- `npm test` — 54 cases across five lanes.
 - `npm run stage-verify -- --browser` — 26 checks in a throwaway profile built
   from a real profile's patch layer, including both sign-in branches driven
   against the real flow and the card rendered in a real browser.

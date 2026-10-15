@@ -161,9 +161,9 @@ export const CONTRIBUTION: RemoteContribution = Object.freeze({
   descriptors: [
     unary('status'),
     unary('signIn'),
-    // `value` is `answer`'s parameter name on the host. See the module note.
-    unary('answer', ['value']),
-    unary('cancel'),
+    // Wire names match the host signatures, including the operation identities.
+    unary('answer', ['attemptId', 'promptId', 'value']),
+    unary('cancel', ['attemptId']),
     unary('signOut'),
   ],
 })
@@ -172,8 +172,8 @@ export const CONTRIBUTION: RemoteContribution = Object.freeze({
 export interface CodexApi {
   status(): Promise<RemoteResponse<CodexStatus>>
   signIn(): Promise<RemoteResponse<AttemptView>>
-  answer(value: string): Promise<RemoteResponse<AttemptView>>
-  cancel(): Promise<RemoteResponse<AttemptView>>
+  answer(attemptId: string, promptId: string, value: string): Promise<RemoteResponse<AttemptView>>
+  cancel(attemptId: string): Promise<RemoteResponse<AttemptView>>
   signOut(): Promise<RemoteResponse<CodexStatus>>
 }
 

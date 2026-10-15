@@ -227,7 +227,7 @@ test('the card renders a sign-in button when signed out', async () => {
 test('the card renders a device code with a copy button while signing in', async () => {
   const view = await render(await mountCard(apiReturning(status({
     attempt: {
-      phase: 'running',
+      id: 'attempt-1', phase: 'running',
       notice: { message: 'Enter this code', url: 'https://example.test/device', code: 'ABCD-EFGH' },
       prompt: null,
       error: null,
@@ -257,7 +257,7 @@ test('the browser-login notice opens the page, offers the link, and tells the tr
     ok: true,
     value: status({
       attempt: {
-        phase: 'running',
+        id: 'attempt-1', phase: 'running',
         notice: { message: 'A browser window should open. Complete login to finish.', url: 'https://auth.example.test/authorize?x=1', code: null },
         prompt: null,
         error: null,
@@ -290,7 +290,7 @@ test('a copy button puts the thing on the clipboard', async () => {
     ok: true,
     value: status({
       attempt: {
-        phase: 'running',
+        id: 'attempt-1', phase: 'running',
         notice: { message: 'Enter this code', url: 'https://example.test/device', code: 'ABCD-EFGH' },
         prompt: null,
         error: null,
@@ -309,9 +309,9 @@ test('a select prompt renders as choices rather than a text field', async () => 
   // it as a text field was the previous implementation's defect.
   const view = await render(await mountCard(apiReturning(status({
     attempt: {
-      phase: 'running',
+      id: 'attempt-1', phase: 'running',
       notice: null,
-      prompt: {
+      prompt: { id: 'prompt-1',
         kind: 'select',
         message: 'Select OpenAI Codex login method:',
         placeholder: null,
@@ -341,9 +341,9 @@ test('choosing a login method answers the flow with that option id', async () =>
     ok: true,
     value: status({
       attempt: {
-        phase: 'running',
+        id: 'attempt-1', phase: 'running',
         notice: null,
-        prompt: {
+        prompt: { id: 'prompt-1',
           kind: 'select',
           message: 'Select OpenAI Codex login method:',
           placeholder: null,
@@ -356,7 +356,7 @@ test('choosing a login method answers the flow with that option id', async () =>
       },
     }),
   })
-  api.answer = async (value) => {
+  api.answer = async (attemptId, promptId, value) => {
     answers.push(value)
     return { ok: true, value: status().attempt }
   }
@@ -370,7 +370,7 @@ test('choosing a login method answers the flow with that option id', async () =>
 test('a text prompt renders an input and submits the typed answer', async () => {
   const answers = []
   const api = apiReturning(status())
-  api.answer = async (value) => {
+  api.answer = async (attemptId, promptId, value) => {
     answers.push(value)
     return { ok: true, value: status().attempt }
   }
@@ -378,9 +378,9 @@ test('a text prompt renders an input and submits the typed answer', async () => 
     ok: true,
     value: status({
       attempt: {
-        phase: 'running',
+        id: 'attempt-1', phase: 'running',
         notice: null,
-        prompt: { kind: 'text', message: 'Paste the code', placeholder: 'http://localhost:1455/…', options: null },
+        prompt: { id: 'prompt-1', kind: 'text', message: 'Paste the code', placeholder: 'http://localhost:1455/…', options: null },
         error: null,
       },
     }),

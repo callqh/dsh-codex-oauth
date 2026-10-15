@@ -40,7 +40,8 @@ export declare class CodexAuthService extends TypertRemoteService {
      * How Codex sign-in stands: the stored grant, the route, and the attempt.
      *
      * Every field is safe for a browser. The account id is masked here rather
-     * than in the panel, so the full one has no path to the wire at all.
+     * than in the panel. Credential read failures reject instead of appearing
+     * signed out.
      */
     status(): Promise<CodexStatus>;
     /**
@@ -53,24 +54,30 @@ export declare class CodexAuthService extends TypertRemoteService {
     signIn(): Promise<AttemptView>;
     /**
      * Answer the question the flow is blocked on.
+     * @param attemptId - identity returned for the displayed login attempt.
+     * @param promptId - identity returned for the displayed question.
      * @param value - typed text, or the chosen option's id.
      * @returns the attempt as it stands after the answer.
      */
-    answer(value: string): Promise<AttemptView>;
+    answer(attemptId: string, promptId: string, value: string): Promise<AttemptView>;
     /**
-     * Withdraw the attempt.
-     *
-     * The human saying no is an outcome, not a fault, so this reports the
-     * attempt rather than throwing.
+     * Withdraw the named attempt and wait for its actual outcome. Once the
+     * authorization service admits a commit, it may finish as authorized.
+     * @param attemptId - identity returned for the login to cancel.
+     * @returns the attempt after authorization settles; stale identities reject.
      */
-    cancel(): Promise<AttemptView>;
+    cancel(attemptId: string): Promise<AttemptView>;
     /**
      * Forget the credential.
      *
      * The record is the whole of the local session — there is no second copy
-     * anywhere, here or in the browser — so deleting it is the entire sign-out.
+     * anywhere, here or in the browser. Sign-out stops new login admission,
+     * waits for the active attempt, then deletes the record. A failed deletion
+     * keeps the attempt available for retry.
      */
     signOut(): Promise<CodexStatus>;
+    /** Reject delayed operations that refer to a previous login. */
+    private requireAttempt;
     /** The wire view of the current attempt, defaulting to idle. */
     private attemptView;
 }

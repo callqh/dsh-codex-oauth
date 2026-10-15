@@ -79,8 +79,12 @@ window.__ModuleLoader__.load({
 			descriptors: [
 				unary("status"),
 				unary("signIn"),
-				unary("answer", ["value"]),
-				unary("cancel"),
+				unary("answer", [
+					"attemptId",
+					"promptId",
+					"value"
+				]),
+				unary("cancel", ["attemptId"]),
 				unary("signOut")
 			]
 		});
@@ -107,27 +111,27 @@ window.__ModuleLoader__.load({
 			document.head.appendChild(tag);
 		}
 		var CodexSignIn_module_css_default = {
-			"headSpacer": "NEjy1a_headSpacer",
-			"code": "NEjy1a_code",
 			"spin": "NEjy1a_spin",
-			"choices": "NEjy1a_choices",
-			"row": "NEjy1a_row",
-			"title": "NEjy1a_title",
 			"done": "NEjy1a_done",
 			"actions": "NEjy1a_actions",
-			"link": "NEjy1a_link",
-			"root": "NEjy1a_root",
-			"label": "NEjy1a_label",
-			"notice": "NEjy1a_notice",
+			"title": "NEjy1a_title",
+			"choices": "NEjy1a_choices",
+			"choiceHint": "NEjy1a_choiceHint",
 			"device": "NEjy1a_device",
+			"row": "NEjy1a_row",
+			"root": "NEjy1a_root",
 			"body": "NEjy1a_body",
-			"head": "NEjy1a_head",
-			"error": "NEjy1a_error",
-			"answerRow": "NEjy1a_answerRow",
-			"choice": "NEjy1a_choice",
+			"link": "NEjy1a_link",
+			"notice": "NEjy1a_notice",
 			"value": "NEjy1a_value",
+			"answerRow": "NEjy1a_answerRow",
+			"headSpacer": "NEjy1a_headSpacer",
+			"error": "NEjy1a_error",
 			"hint": "NEjy1a_hint",
-			"choiceHint": "NEjy1a_choiceHint"
+			"code": "NEjy1a_code",
+			"choice": "NEjy1a_choice",
+			"label": "NEjy1a_label",
+			"head": "NEjy1a_head"
 		};
 		//#endregion
 		//#region src/client/CodexSignIn.tsx
@@ -303,15 +307,20 @@ window.__ModuleLoader__.load({
 			};
 			const send = (value) => {
 				run(async (api) => {
-					unwrap(await api.answer(value));
+					if (status?.attempt.id == null || status.attempt.prompt === null) return;
+					unwrap(await api.answer(status.attempt.id, status.attempt.prompt.id, value));
 					setAnswer("");
 					await reload();
 				});
 			};
 			const cancel = () => {
 				run(async (api) => {
-					unwrap(await api.cancel());
-					setFlash({
+					if (status?.attempt.id == null) return;
+					const result = unwrap(await api.cancel(status.attempt.id));
+					setFlash(result.phase === "authorized" ? {
+						tone: "done",
+						text: t("done")
+					} : {
 						tone: "notice",
 						text: t("cancelled")
 					});
@@ -745,7 +754,7 @@ window.__ModuleLoader__.load({
 			namespaceMissing: "连不上 Harness 的登录服务（codexAuth）。插件已加载，但主进程没有把接口挂上——请把控制台里 [dsh-codex-oauth] 开头的日志发出来。",
 			working: "处理中…",
 			done: "登录成功。Codex 模型现在可以使用了。",
-			cancelled: "已取消登录，没有产生任何凭证。",
+			cancelled: "已取消登录",
 			failed: "登录没有完成",
 			seamsMissing: "Harness 的授权或凭证服务没有挂载，这台机器上无法完成登录。",
 			flowMissing: "当前的 Harness 版本没有为 Codex 注册登录入口，无法发起登录。这通常意味着 llm-pi-ai 未挂载，或它的目录里没有 openai-codex。",
@@ -783,7 +792,7 @@ window.__ModuleLoader__.load({
 			namespaceMissing: "Cannot reach the Harness sign-in service (codexAuth). The plugin loaded, but the host did not publish the interface — please share the console lines starting with [dsh-codex-oauth].",
 			working: "Working…",
 			done: "Signed in. Codex models are ready to use.",
-			cancelled: "Sign-in cancelled. Nothing was stored.",
+			cancelled: "Sign-in cancelled.",
 			failed: "Sign-in did not finish",
 			seamsMissing: "This Harness has no authorization or credential service mounted, so signing in is not possible here.",
 			flowMissing: "This Harness build registered no sign-in flow for Codex, so one cannot be started. That usually means llm-pi-ai is not mounted, or its catalog ships no openai-codex.",
@@ -882,18 +891,11 @@ window.__ModuleLoader__.load({
 			const lookup = ctx.locale.bind(NS);
 			const t = bindMessages(lookup);
 			ctx.effect(() => {
-				let dispose;
-				let unloaded = false;
-				ctx.remote.$mount(CONTRIBUTION).then((off) => {
-					console.info(`${TAG} Remote namespace ${JSON.stringify(NAMESPACE)} mounted`);
-					if (unloaded) off();
-					else dispose = off;
-				}).catch((error) => {
+				const mounted = ctx.remote.$mount(CONTRIBUTION).then((dispose) => ({ dispose }), (error) => {
 					console.warn(`${TAG} could not mount the ${NAMESPACE} Remote namespace`, error);
 				});
 				return async () => {
-					unloaded = true;
-					await dispose?.();
+					await (await mounted)?.dispose();
 				};
 			}, "codex-oauth: Remote contribution");
 			ctx.slots.inject(SLOT, () => {

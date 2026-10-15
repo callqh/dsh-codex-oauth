@@ -33,7 +33,7 @@ does not use the `apiKeyEnv` route, and does not touch `~/.codex/auth.json`.
 ```
 ready, signedIn, accountId (masked), planType, expiresAt,
 routeConfigured, flowAvailable, flowLabel,
-attempt: { phase, notice: { message, url, code }, prompt, error }
+attempt: { id, phase, notice: { message, url, code }, prompt, error }
 ```
 
 `accountId` is truncated **on the host** (`acct-012…cdef`), so the full value has
@@ -42,6 +42,22 @@ signing material, and no unredacted record is ever returned.
 
 The `notice.code` field is the device-code the human has to type — it is shown on
 screen by design, not a secret.
+
+## Login operation identities
+
+Every attempt and prompt has an opaque ID. Answers carry both IDs; cancellation
+carries the attempt ID. Delayed requests reject after a question or login has
+been replaced. These IDs prevent stale operations; they do not grant access or
+replace the Harness connection's authentication.
+
+A withdrawn prompt is removed immediately. Cancellation reports the outcome
+returned by the authorization service, including an admitted commit that finishes
+as authorized. Sign-out waits for the active authorization before deleting its
+record, and blocks new login attempts until deletion finishes. Plugin disposal
+waits for its authorization promise and pending Remote contribution cleanup.
+
+Credential-store read failures are reported as failures rather than as a
+signed-out state.
 
 ## The one place a token is touched
 

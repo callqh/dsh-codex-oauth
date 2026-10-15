@@ -29,6 +29,8 @@ export interface PromptOptionView {
  * surface presents it.
  */
 export interface PromptView {
+    /** Opaque identity echoed when answering this question. */
+    readonly id: string;
     readonly kind: 'text' | 'secret' | 'select';
     readonly message: string;
     readonly placeholder: string | null;
@@ -36,6 +38,8 @@ export interface PromptView {
 }
 /** What the panel renders for one running (or just-finished) attempt. */
 export interface AttemptView {
+    /** Opaque identity echoed by answer and cancel; null while idle. */
+    readonly id: string | null;
     readonly phase: AttemptPhase;
     readonly notice: NoticeView | null;
     readonly prompt: PromptView | null;

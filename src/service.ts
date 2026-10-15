@@ -24,6 +24,7 @@
  *
  * @module dsh-codex-oauth/service
  */
+import { randomUUID } from 'node:crypto'
 import { AuthorizationDeclinedError, type AuthorizationService } from '@deepseek-ai/dsh-authorization'
 import type { CredentialProvider } from '@deepseek-ai/dsh-credentials'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
@@ -60,6 +61,8 @@ interface PendingPrompt {
 
 /** The mutable half of one attempt: what the panel reads and what it answers. */
 interface Attempt {
+  readonly id: string
+  done: Promise<void>
   phase: AttemptPhase
   notice: NoticeView | null
   prompt: PendingPrompt | null
@@ -114,7 +117,9 @@ export class CodexAuthService extends TypertRemoteService {
   private readonly route: RouteProbe
 
   /** The one live attempt, if any. Container semantics, for the reason above. */
-  private readonly state: { attempt: Attempt | null } = { attempt: null }
+  private readonly state: { attempt: Attempt | null; closed: boolean; signingOut: boolean } = {
+    attempt: null, closed: false, signingOut: false,
+  }
 
   /**
    * @param ctx - the owning context, which this Service registers itself in.
@@ -138,10 +143,13 @@ export class CodexAuthService extends TypertRemoteService {
     // A sign-in still waiting for its human must not outlive the plugin that
     // shows it: the pending question is withdrawn and the attempt cancelled
     // upstream, rather than left to time out against the device-code deadline.
-    ctx.effect(() => () => {
-      this.state.attempt?.prompt?.decline()
-      this.state.attempt = null
+    ctx.effect(() => async () => {
+      this.state.closed = true
+      const attempt = this.state.attempt
+      attempt?.prompt?.decline()
       this.seams.authorization?.cancel(FLOW_KEY)
+      await attempt?.done
+      this.state.attempt = null
     }, 'codex-oauth: withdraw a running sign-in')
   }
 
@@ -149,7 +157,8 @@ export class CodexAuthService extends TypertRemoteService {
    * How Codex sign-in stands: the stored grant, the route, and the attempt.
    *
    * Every field is safe for a browser. The account id is masked here rather
-   * than in the panel, so the full one has no path to the wire at all.
+   * than in the panel. Credential read failures reject instead of appearing
+   * signed out.
    */
   @Remote
   async status(): Promise<CodexStatus> {
@@ -162,16 +171,11 @@ export class CodexAuthService extends TypertRemoteService {
     let planType: string | null = null
     let expiresAt: number | null = null
     if (credentials !== undefined) {
-      try {
-        const facts = grantFacts(await credentials.readRecord(FLOW_KEY))
-        signedIn = facts.signedIn
-        accountId = maskAccountId(facts.accountId)
-        planType = facts.planType
-        expiresAt = facts.expiresAt
-      } catch {
-        // An unreadable store is "not signed in" for display purposes; the
-        // request path does its own read and reports its own error.
-      }
+      const facts = grantFacts(await credentials.readRecord(FLOW_KEY))
+      signedIn = facts.signedIn
+      accountId = maskAccountId(facts.accountId)
+      planType = facts.planType
+      expiresAt = facts.expiresAt
     }
 
     const entry = authorization?.describe(FLOW_KEY)
@@ -197,6 +201,8 @@ export class CodexAuthService extends TypertRemoteService {
    */
   @Remote
   async signIn(): Promise<AttemptView> {
+    if (this.state.closed) throw new Error('Codex sign-in is unavailable after the plugin unloads')
+    if (this.state.signingOut) throw new Error('Sign-out is still finishing. Try again when it completes.')
     const authorization = this.seams.authorization
     if (authorization === undefined) throw new Error('Harness 的授权服务未就绪，无法发起登录')
 
@@ -205,7 +211,7 @@ export class CodexAuthService extends TypertRemoteService {
     // answer the caller actually wants, so the refusal never has to surface.
     if (this.state.attempt?.phase === 'running') return this.attemptView()
 
-    const attempt: Attempt = { phase: 'running', notice: null, prompt: null, error: null }
+    const attempt: Attempt = { id: randomUUID(), done: Promise.resolve(), phase: 'running', notice: null, prompt: null, error: null }
     this.state.attempt = attempt
 
     const interaction = {
@@ -219,9 +225,21 @@ export class CodexAuthService extends TypertRemoteService {
         }
       },
       prompt: (prompt: PromptShape) => new Promise<string>((resolve, reject) => {
+        if (prompt.signal?.aborted) {
+          reject(new Error('Login question was withdrawn.'))
+          return
+        }
         let settled = false
         const withdraw = (): void => {
+          prompt.signal?.removeEventListener('abort', abort)
           if (attempt.prompt === pending) attempt.prompt = null
+        }
+        const abort = (): void => {
+          if (settled) return
+          settled = true
+          withdraw()
+          // Only a human refusal is AuthorizationDeclinedError; callback withdrawal is not.
+          reject(new Error('Login question was withdrawn.'))
         }
         const pending: PendingPrompt = {
           view: promptView(prompt),
@@ -242,10 +260,11 @@ export class CodexAuthService extends TypertRemoteService {
         // the seam's contract to prevent and this line's to survive.
         attempt.prompt?.decline()
         attempt.prompt = pending
+        prompt.signal?.addEventListener('abort', abort, { once: true })
       }),
     }
 
-    void authorization.begin({ key: FLOW_KEY, method: LOGIN_METHOD, interaction }).then(
+    attempt.done = authorization.begin({ key: FLOW_KEY, method: LOGIN_METHOD, interaction }).then(
       (outcome) => {
         attempt.prompt?.decline()
         attempt.phase = outcome.status === 'authorized' ? 'authorized' : 'cancelled'
@@ -265,29 +284,37 @@ export class CodexAuthService extends TypertRemoteService {
 
   /**
    * Answer the question the flow is blocked on.
+   * @param attemptId - identity returned for the displayed login attempt.
+   * @param promptId - identity returned for the displayed question.
    * @param value - typed text, or the chosen option's id.
    * @returns the attempt as it stands after the answer.
    */
   @Remote
-  async answer(value: string): Promise<AttemptView> {
-    const prompt = this.state.attempt?.prompt
-    if (prompt === null || prompt === undefined) throw new Error('当前没有等待回答的问题')
-    prompt.answer(typeof value === 'string' ? value : '')
+  async answer(attemptId: string, promptId: string, value: string): Promise<AttemptView> {
+    const attempt = this.requireAttempt(attemptId)
+    const prompt = attempt.prompt
+    if (attempt.phase !== 'running' || prompt === null || prompt.view.id !== promptId) {
+      throw new Error('This login question has expired. Refresh the sign-in page and try again.')
+    }
+    if (prompt.view.kind === 'select' && !prompt.view.options?.some(option => option.id === value)) {
+      throw new Error('Choose one of the displayed login methods.')
+    }
+    prompt.answer(value)
     return this.attemptView()
   }
 
   /**
-   * Withdraw the attempt.
-   *
-   * The human saying no is an outcome, not a fault, so this reports the
-   * attempt rather than throwing.
+   * Withdraw the named attempt and wait for its actual outcome. Once the
+   * authorization service admits a commit, it may finish as authorized.
+   * @param attemptId - identity returned for the login to cancel.
+   * @returns the attempt after authorization settles; stale identities reject.
    */
   @Remote
-  async cancel(): Promise<AttemptView> {
-    const attempt = this.state.attempt
-    attempt?.prompt?.decline()
+  async cancel(attemptId: string): Promise<AttemptView> {
+    const attempt = this.requireAttempt(attemptId)
+    attempt.prompt?.decline()
     this.seams.authorization?.cancel(FLOW_KEY)
-    if (attempt !== null && attempt.phase === 'running') attempt.phase = 'cancelled'
+    await attempt.done
     return this.attemptView()
   }
 
@@ -295,27 +322,47 @@ export class CodexAuthService extends TypertRemoteService {
    * Forget the credential.
    *
    * The record is the whole of the local session — there is no second copy
-   * anywhere, here or in the browser — so deleting it is the entire sign-out.
+   * anywhere, here or in the browser. Sign-out stops new login admission,
+   * waits for the active attempt, then deletes the record. A failed deletion
+   * keeps the attempt available for retry.
    */
   @Remote
   async signOut(): Promise<CodexStatus> {
+    if (this.state.closed) throw new Error('Codex sign-in is unavailable after the plugin unloads')
+    if (this.state.signingOut) throw new Error('Sign-out is already running.')
     const credentials = this.seams.credentials
     if (credentials === undefined) throw new Error('Harness 的凭证服务未就绪，无法退出登录')
-    this.state.attempt?.prompt?.decline()
-    this.state.attempt = null
-    this.seams.authorization?.cancel(FLOW_KEY)
-    await credentials.deleteRecord(FLOW_KEY)
-    this.route.invalidate()
-    return this.status()
+    this.state.signingOut = true
+    try {
+      const attempt = this.state.attempt
+      attempt?.prompt?.decline()
+      this.seams.authorization?.cancel(FLOW_KEY)
+      await attempt?.done
+      await credentials.deleteRecord(FLOW_KEY)
+      this.state.attempt = null
+      this.route.invalidate()
+      return await this.status()
+    } finally {
+      this.state.signingOut = false
+    }
+  }
+
+  /** Reject delayed operations that refer to a previous login. */
+  private requireAttempt(id: string): Attempt {
+    if (this.state.closed) throw new Error('Codex sign-in is unavailable after the plugin unloads')
+    const attempt = this.state.attempt
+    if (attempt === null || attempt.id !== id) throw new Error('This login attempt has expired. Refresh the sign-in page.')
+    return attempt
   }
 
   /** The wire view of the current attempt, defaulting to idle. */
   private attemptView(): AttemptView {
     const attempt = this.state.attempt
     if (attempt === null) {
-      return { phase: 'idle', notice: null, prompt: null, error: null }
+      return { id: null, phase: 'idle', notice: null, prompt: null, error: null }
     }
     return {
+      id: attempt.id,
       phase: attempt.phase,
       notice: attempt.notice,
       prompt: attempt.prompt === null ? null : attempt.prompt.view,
@@ -326,6 +373,7 @@ export class CodexAuthService extends TypertRemoteService {
 
 /** The seam's own prompt shape, as this plugin reads it structurally. */
 interface PromptShape {
+  readonly signal?: AbortSignal
   readonly kind?: unknown
   readonly message?: unknown
   readonly placeholder?: unknown
@@ -343,6 +391,7 @@ function promptView(prompt: PromptShape): PromptView {
   const kind = prompt.kind === 'select' || prompt.kind === 'secret' ? prompt.kind : 'text'
   const rawOptions = Array.isArray(prompt.options) ? prompt.options : null
   return {
+    id: randomUUID(),
     kind,
     message: textOf(prompt.message) ?? '',
     placeholder: textOf(prompt.placeholder),

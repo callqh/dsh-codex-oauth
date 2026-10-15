@@ -154,7 +154,7 @@ test('every Remote method survives the proxy Cordis hands a caller', async () =>
   const status = await service.status()
   assert.equal(status.ready, true)
   assert.equal((await service.signIn()).phase, 'running')
-  assert.equal((await service.cancel()).phase, 'cancelled')
+  assert.equal((await service.cancel((await service.status()).attempt.id)).phase, 'cancelled')
   assert.equal((await service.signOut()).signedIn, false)
   await ctx.fiber.dispose()
 })
@@ -217,13 +217,14 @@ test('a sign-in carries the flow notice and question through to the caller', asy
     code: 'ABCD-EFGH',
   })
   assert.deepEqual(waiting.attempt.prompt, {
+    id: waiting.attempt.prompt.id,
     kind: 'select',
     message: 'Pick one',
     placeholder: null,
     options: [{ id: 'browser', label: 'Browser', description: null }],
   })
 
-  await service.answer('browser')
+  await service.answer(waiting.attempt.id, waiting.attempt.prompt.id, 'browser')
   assert.equal(await pending, 'browser')
 
   authorization.settle('authorized')
@@ -247,14 +248,14 @@ test('a second sign-in while one runs reports the live attempt instead of failin
 
 test('answering with no question pending is an error, not a no-op', async () => {
   const { ctx, service } = await harness()
-  await assert.rejects(() => service.answer('anything'), /没有等待回答的问题/)
+  await assert.rejects(() => service.answer('expired', 'expired', 'anything'), /expired/)
   await ctx.fiber.dispose()
 })
 
 test('cancelling settles the attempt as cancelled and withdraws it upstream', async () => {
   const { ctx, service, authorization } = await harness()
   await service.signIn()
-  const state = await service.cancel()
+  const state = await service.cancel((await service.status()).attempt.id)
   assert.equal(state.phase, 'cancelled')
   assert.equal(authorization.cancels, 1)
   await ctx.fiber.dispose()
@@ -293,4 +294,118 @@ test('unloading the plugin withdraws a running sign-in', async () => {
   await service.signIn()
   await ctx.fiber.dispose()
   assert.equal(authorization.cancels >= 1, true)
+})
+
+test('withdrawn prompts reject and disappear before login finishes', async () => {
+  const { ctx, service, authorization } = await harness()
+  try {
+    await service.signIn()
+    const controller = new AbortController()
+    const pending = authorization.prompt({ kind: 'text', message: 'Paste code', signal: controller.signal })
+    const rejected = assert.rejects(pending, /withdrawn/)
+    controller.abort()
+    await rejected
+    assert.equal((await service.status()).attempt.prompt, null)
+    assert.equal((await service.status()).attempt.phase, 'running')
+  } finally { await ctx.fiber.dispose() }
+})
+
+test('already-withdrawn prompts are never published', async () => {
+  const { ctx, service, authorization } = await harness()
+  try {
+    await service.signIn()
+    await assert.rejects(authorization.prompt({ kind: 'text', message: 'Expired', signal: AbortSignal.abort() }), /withdrawn/)
+    assert.equal((await service.status()).attempt.prompt, null)
+  } finally { await ctx.fiber.dispose() }
+})
+
+test('old answers cannot resolve a replacement question', async () => {
+  const { ctx, service, authorization } = await harness()
+  try {
+    await service.signIn()
+    const first = authorization.prompt({ kind: 'text', message: 'First' })
+    first.catch(() => {})
+    const before = (await service.status()).attempt
+    const second = authorization.prompt({ kind: 'text', message: 'Second' })
+    second.catch(() => {})
+    await assert.rejects(service.answer(before.id, before.prompt.id, 'old answer'), /expired/)
+    const current = (await service.status()).attempt
+    assert.equal(current.prompt.message, 'Second')
+    await service.answer(current.id, current.prompt.id, 'current answer')
+    assert.equal(await second, 'current answer')
+  } finally { await ctx.fiber.dispose() }
+})
+
+test('a cancelled attempt cannot answer or cancel its successor', async () => {
+  const { ctx, service } = await harness()
+  try {
+    const first = await service.signIn()
+    await service.cancel(first.id)
+    const second = await service.signIn()
+    assert.notEqual(second.id, first.id)
+    await assert.rejects(service.cancel(first.id), /expired/)
+    await assert.rejects(service.answer(first.id, 'old-prompt', 'old'), /expired/)
+    assert.equal((await service.status()).attempt.id, second.id)
+  } finally { await ctx.fiber.dispose() }
+})
+
+test('sign-out waits for login settlement before deleting credentials', async () => {
+  const { ctx, service, authorization, credentials } = await harness()
+  try {
+    await service.signIn()
+    authorization.cancel = () => {}
+    const signingOut = service.signOut()
+    await Promise.resolve()
+    assert.equal(credentials.deleted.length, 0)
+    await assert.rejects(service.signIn(), /Sign-out is still finishing/)
+    authorization.settle('authorized')
+    await signingOut
+    assert.deepEqual(credentials.deleted, [KEY])
+    assert.equal((await service.status()).attempt.phase, 'idle')
+  } finally { await ctx.fiber.dispose() }
+})
+
+test('unload waits for a login that has reached commit', async () => {
+  const { ctx, service, authorization } = await harness()
+  await service.signIn()
+  authorization.cancel = () => {}
+  let finished = false
+  const disposing = ctx.fiber.dispose().then(() => { finished = true })
+  await Promise.resolve()
+  assert.equal(finished, false)
+  authorization.settle('authorized')
+  await disposing
+  assert.equal(finished, true)
+})
+
+test('credential read failures are reported rather than shown as signed out', async () => {
+  const { ctx, service, credentials } = await harness()
+  try {
+    credentials.readRecord = async () => { throw new Error('credential store unavailable') }
+    await assert.rejects(service.status(), /credential store unavailable/)
+  } finally { await ctx.fiber.dispose() }
+})
+
+test('cancel reports an admitted authorization commit as authorized', async () => {
+  const { ctx, service, authorization } = await harness()
+  try {
+    const attempt = await service.signIn()
+    authorization.cancel = () => {}
+    const cancelling = service.cancel(attempt.id)
+    authorization.settle('authorized')
+    assert.equal((await cancelling).phase, 'authorized')
+  } finally { await ctx.fiber.dispose() }
+})
+
+test('invalid login choices leave the pending question available', async () => {
+  const { ctx, service, authorization } = await harness()
+  try {
+    await service.signIn()
+    const answer = authorization.prompt({ kind: 'select', message: 'Method', options: [{ id: 'browser', label: 'Browser' }] })
+    const attempt = (await service.status()).attempt
+    await assert.rejects(service.answer(attempt.id, attempt.prompt.id, 'other'), /displayed login methods/)
+    assert.equal((await service.status()).attempt.prompt.id, attempt.prompt.id)
+    await service.answer(attempt.id, attempt.prompt.id, 'browser')
+    assert.equal(await answer, 'browser')
+  } finally { await ctx.fiber.dispose() }
 })

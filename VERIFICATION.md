@@ -1,3 +1,21 @@
+# Current regression checks
+
+The login lifecycle regression suite contains 54 tests. Nine added Host cases
+cover prompt withdrawal, already-aborted prompts, stale question answers, stale
+attempt actions, sign-out sequencing, unload sequencing, and credential-read
+failure reporting, admitted cancellation outcomes, and invalid login choices. A Client case waits for pending Remote registration and disposal. Client tests carry the attempt and prompt IDs through the
+updated descriptors and UI calls. These checks do not authenticate a real
+ChatGPT account or send a Codex inference request.
+
+The staging probes use the same IDs for answers and cancellation. Run
+`npm run check` and `npm test` after source changes; Host and browser artifacts
+must be rebuilt together.
+
+The record below describes the original deployment's verification and is not
+evidence that the current revision has completed its manual acceptance steps.
+
+---
+
 # VERIFICATION
 
 Target runtime: **the local DeepSeek Harness `0.2.0-rc.2` Desktop, profile `desktop`.**

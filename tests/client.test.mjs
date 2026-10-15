@@ -151,7 +151,7 @@ test('the mounted contribution declares the five host methods', async () => {
   // The wire field has to be the host method's own parameter name. The rest of
   // the codec — which the reflection registry also inspects — is the subject of
   // tests/descriptors.test.mjs, which runs it against the real registry.
-  assert.deepEqual(answer.parameters.map((parameter) => [parameter.name, parameter.wire, parameter.source]), [['value', 'value', 'json']])
+  assert.deepEqual(answer.parameters.map((parameter) => [parameter.name, parameter.wire, parameter.source]), ['attemptId', 'promptId', 'value'].map(name => [name, name, 'json']))
   for (const descriptor of record.mounted.descriptors) {
     for (const parameter of descriptor.parameters) assert.equal(parameter.codec.mode, 'strict')
   }
@@ -232,4 +232,32 @@ test('the committed bundle is the one the build produces', async () => {
   assert.match(bundle, /^window\.__ModuleLoader__\.load\(/)
   assert.match(bundle, /id: "dsh-codex-oauth"/)
   assert.match(bundle, /exports\.apply = apply/)
+})
+
+test('unload waits for pending Remote registration and its disposer', async () => {
+  const { face } = await loadFace()
+  const { ctx } = makeContext()
+  const mounting = Promise.withResolvers()
+  const unmounting = Promise.withResolvers()
+  const unmountStarted = Promise.withResolvers()
+  let cleanup
+  ctx.remote.$mount = () => mounting.promise
+  ctx.effect = (callback, label) => {
+    const dispose = callback()
+    if (label === 'codex-oauth: Remote contribution') cleanup = dispose
+  }
+  face.apply(ctx)
+  let finished = false
+  const disposing = cleanup().then(() => { finished = true })
+  await Promise.resolve()
+  assert.equal(finished, false)
+  mounting.resolve(async () => {
+    unmountStarted.resolve()
+    await unmounting.promise
+  })
+  await unmountStarted.promise
+  assert.equal(finished, false)
+  unmounting.resolve()
+  await disposing
+  assert.equal(finished, true)
 })

@@ -163,7 +163,7 @@ test('the declared methods match the host service', async () => {
   // method's own parameter name, which the SRC descriptor derives from the
   // signature.
   const answer = contribution.descriptors.find((descriptor) => descriptor.method === 'answer')
-  assert.deepEqual(answer.parameters.map((parameter) => parameter.wire), ['value'])
+  assert.deepEqual(answer.parameters.map((parameter) => parameter.wire), ['attemptId', 'promptId', 'value'])
   for (const descriptor of contribution.descriptors) {
     assert.equal(descriptor.namespace, 'codexAuth')
     assert.equal(descriptor.service, 'codexAuth')
