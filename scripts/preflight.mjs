@@ -49,116 +49,6 @@ const PLATFORM_SEED = new Set([
   '@deepseek-ai/dsh-client-ui-dockkit',
 ])
 
-/**
- * Resolve the installed version of each named package.
- * @param names - the package names to look up.
- * @returns name to version, omitting anything that does not resolve.
- */
-async function resolvedVersions(names) {
-  const found = new Map()
-  for (const name of names) {
-    try {
-      const manifest = JSON.parse(await readFile(join(root, 'node_modules', name, 'package.json'), 'utf8'))
-      if (typeof manifest.version === 'string') found.set(name, manifest.version)
-    } catch {
-      // Absent is reported as "does not admit", which is the useful failure.
-    }
-  }
-  return found
-}
-
-/**
- * Whether one semver range admits a version.
- *
- * Hand-rolled on purpose: pulling a full semver implementation into a preflight
- * would be a dependency for one assertion. It implements exactly the parts the
- * declarations use — `||`, whitespace-separated comparators, `>= <= > <`, `^`,
- * and precedence including prereleases — and it implements them strictly,
- * because the prerelease rule is the one that bites: numeric identifiers sort
- * below alphanumeric ones, and a prerelease only satisfies a range when a
- * comparator on its own tuple carries a prerelease tag.
- *
- * @param range - the declared range.
- * @param version - the version to test.
- * @returns whether the range admits it.
- */
-function admits(range, version) {
-  return range.split('||').some((branch) => branch
-    .trim()
-    .split(/\s+/)
-    .filter((comparator) => comparator.length > 0)
-    .every((comparator) => satisfies(comparator, version)))
-}
-
-/**
- * Whether one comparator admits a version.
- * @param comparator - `>=x`, `<=x`, `>x`, `<x`, `^x`, or an exact version.
- * @param version - the version to test.
- * @returns whether it holds.
- */
-function satisfies(comparator, version) {
-  if (comparator.startsWith('>=')) return compareVersions(version, comparator.slice(2)) >= 0
-  if (comparator.startsWith('<=')) return compareVersions(version, comparator.slice(2)) <= 0
-  if (comparator.startsWith('>')) return compareVersions(version, comparator.slice(1)) > 0
-  if (comparator.startsWith('<')) return compareVersions(version, comparator.slice(1)) < 0
-  if (comparator.startsWith('^')) {
-    const floor = comparator.slice(1)
-    if (compareVersions(version, floor) < 0) return false
-    const [major = '0', minor = '0', patch = '0'] = floor.split('-')[0].split('.')
-    // Caret pins the leftmost non-zero field: ^1.2.3 < 2, ^0.2.3 < 0.3, ^0.0.3 < 0.0.4.
-    if (major !== '0') return version.split('.')[0] === major
-    if (minor !== '0') return version.startsWith(`0.${minor}.`)
-    return version.startsWith(`0.0.${patch}`)
-  }
-  return compareVersions(version, comparator) === 0
-}
-
-/**
- * Compare two versions by semver precedence.
- * @param left - the left version.
- * @param right - the right version.
- * @returns a negative number, zero, or a positive number.
- */
-function compareVersions(left, right) {
-  const a = parseVersion(left)
-  const b = parseVersion(right)
-  for (const field of ['major', 'minor', 'patch']) {
-    if (a[field] !== b[field]) return a[field] < b[field] ? -1 : 1
-  }
-  if (a.pre.length === 0 && b.pre.length === 0) return 0
-  // A release outranks its own prerelease: 0.2.0 > 0.2.0-rc.2.
-  if (a.pre.length === 0) return 1
-  if (b.pre.length === 0) return -1
-  for (let index = 0; index < Math.max(a.pre.length, b.pre.length); index += 1) {
-    const x = a.pre[index]
-    const y = b.pre[index]
-    if (x === undefined) return -1
-    if (y === undefined) return 1
-    const xNumeric = /^\d+$/.test(x)
-    const yNumeric = /^\d+$/.test(y)
-    if (xNumeric && yNumeric) {
-      if (Number(x) !== Number(y)) return Number(x) < Number(y) ? -1 : 1
-      continue
-    }
-    // Numeric identifiers always have lower precedence than alphanumeric ones.
-    if (xNumeric) return -1
-    if (yNumeric) return 1
-    if (x !== y) return x < y ? -1 : 1
-  }
-  return 0
-}
-
-/**
- * Split a version into its comparable parts.
- * @param text - the version.
- * @returns numeric core fields and prerelease identifiers.
- */
-function parseVersion(text) {
-  const [core = '0.0.0', pre = ''] = text.split('-', 2)
-  const [major = 0, minor = 0, patch = 0] = core.split('.').map((part) => Number.parseInt(part, 10) || 0)
-  return { major, minor, patch, pre: pre === '' ? [] : pre.split('.') }
-}
-
 const failures = []
 const notes = []
 
@@ -194,30 +84,13 @@ check('exports["./client"] points at the bundle', pkg.exports?.['./client'] === 
 check('exports["."] default points at lib/index.js', pkg.exports?.['.']?.default === './lib/index.js', pkg.exports?.['.']?.default)
 check('main points at lib/index.js', pkg.main === 'lib/index.js', pkg.main)
 
-// The version gate reads peerDependencies, and a range the running line does
-// not satisfy is an install rejection — which is how the community plugin this
-// one replaces was refused on 0.2.0-rc.2. Each peer is tested against the
-// version actually resolved on this machine, so the declaration and reality
-// cannot drift apart.
-//
-// The `||` branches are not decoration. node-semver only lets a prerelease
-// satisfy a range when some comparator in that range shares its exact
-// major.minor.patch tuple AND carries a prerelease tag itself, so a broad-looking
-// `>=0.2.0-rc.2` silently excludes every later line's `-rc`. See the note in
-// README.md.
-const runtimeVersions = await resolvedVersions([
-  '@deepseek-ai/cordis',
-  '@deepseek-ai/dsh-typert-protocol',
-])
-for (const [dependency, range] of Object.entries(pkg.peerDependencies ?? {})) {
-  const version = dependency === '@deepseek-ai/cordis'
-    ? runtimeVersions.get('@deepseek-ai/cordis')
-    : runtimeVersions.get('@deepseek-ai/dsh-typert-protocol')
-  check(
-    `peer ${dependency} admits the resolved ${String(version)}`,
-    typeof version === 'string' && admits(range, version),
-    `${String(range)} vs ${String(version)}`,
-  )
+// DSH owns these services. Installing even an optional peer can place a second
+// version in the profile and shadow the bundled authorization/account services.
+for (const field of ['dependencies', 'optionalDependencies', 'peerDependencies']) {
+  check(`${field} cannot install host packages`, Object.keys(pkg[field] ?? {}).length === 0)
+}
+for (const hook of ['preinstall', 'install', 'postinstall', 'prepare', 'prepack']) {
+  check(`installation does not run ${hook}`, pkg.scripts?.[hook] === undefined)
 }
 
 // ------------------------------------------------------------------- patch --
@@ -243,9 +116,8 @@ if (await isFile('lib/index.js')) {
   // composition might not mount, and an entry that never activates fails the
   // boot. The seams are injected inside the constructor instead.
   check('the host entry declares no static inject', exported?.inject === undefined, JSON.stringify(exported?.inject))
-  // Importing must not require any @deepseek-ai package to be resolvable from
-  // the PROFILE: the linked checkout keeps its own node_modules. Resolving a
-  // real instance here proves the chain loads.
+  // This is a development-only import check. The packed-profile regression
+  // verifies installation separately; DSH supplies these modules at runtime.
   const require = createRequire(join(root, 'lib/index.js'))
   for (const id of ['@deepseek-ai/dsh-authorization', '@deepseek-ai/dsh-credentials', '@deepseek-ai/dsh-typert-protocol']) {
     let resolved = false
@@ -254,7 +126,7 @@ if (await isFile('lib/index.js')) {
     } catch {
       resolved = false
     }
-    check(`runtime dependency ${id} resolves`, resolved)
+    check(`development dependency ${id} resolves`, resolved)
   }
 }
 

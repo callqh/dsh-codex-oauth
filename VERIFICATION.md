@@ -1,7 +1,37 @@
 # VERIFICATION
 
-Target runtime: **the local DeepSeek Harness `0.2.0-rc.2` Desktop, profile `desktop`.**
-Nothing here aims at any other version.
+## Issue #3 regression — 2026-11-10
+
+The distribution now has no runtime, optional, or peer dependencies and no
+install/pack lifecycle builds. DSH packages are pinned development tools only;
+the installed plugin imports the running host's service modules through DSH's resolver.
+This prevents dependency shadowing across upgrades; it is not a promise that
+future breaking host API changes will be compatible.
+
+- `npm run check` passed; the existing 44 tests plus the new packaging test passed.
+- The packaging test installs the actual tarball into four fresh profiles:
+  `hoisted`/`isolated` × `autoInstallPeers` false/true. No DSH packages are installed,
+  and both committed entry points are present with build scripts disabled.
+- Actual host test: extracted Desktop **0.2.2-rc.1**, bundled Node **24.21.0**,
+  pnpm **11.28.5**, disposable Web profiles outside the checkout and runtime trees.
+  Both layouts pass `settings/describe`, `account/getState`, and `codexAuth/status`
+  (`ready`, `routeConfigured`, `flowAvailable` true; `signedIn` false), without
+  authorization incompatibility warnings or pending account services.
+- Before the fix, the same host with hoisted dependencies disabled authorization
+  **0.2.0-rc.2**, left account services pending, and returned
+  `gateway/service-unavailable` from `account/getState`.
+- Development unit tests use the pinned **0.2.0-rc.2** API packages; this is not a
+  second full Desktop boot test. No Desktop UI, real OAuth, or model request was
+  exercised for this fix. Existing personal profiles were not changed.
+- `stage-verify` now installs an archive rather than `link:` and checks the built-in
+  account RPC, so development dependencies cannot hide this regression. Its
+  `--startup-only` run passed 11 checks on the same host (pnpm 12.4.2), including
+  client bundle discovery and Models route visibility, without starting OAuth.
+  Run `node scripts/stage-verify.mjs --dsh <extracted-cli> --startup-only` with
+  the host's Node runtime to repeat this check.
+
+The sections below retain the earlier **0.2.0-rc.2** verification record. Their
+historical outputs and setup do not supersede the regression results above.
 
 The list is split by who can do it. Everything in part 1 was run and is
 reproducible. Part 2 needs a human and a real ChatGPT account, and is the only
@@ -49,10 +79,9 @@ ok   the stylesheet is inlined into the bundle
 preflight: all checks passed
 ```
 
-`@deepseek-ai/dsh-llm` and `@deepseek-ai/dsh-invariants` are declared as runtime
-**dependencies**, not peers, because `dsh-authorization`'s own import graph
-reaches them: with `autoInstallPeers: false` a missing one is an
-`ERR_MODULE_NOT_FOUND` at plugin import — i.e. a failed boot.
+The original setup installed private runtime dependencies to satisfy imports.
+That packaging caused Issue #3 and is superseded by host-owned module resolution
+as described above. The output block is historical.
 
 ### 1.2 Tests — `npm test` (44 cases, five lanes)
 

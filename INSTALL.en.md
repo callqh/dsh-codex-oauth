@@ -56,6 +56,10 @@ When you are done, report:
 - A **ChatGPT Plus or Pro** subscription.
 - Write access to your DSH home (`~/.dsh` by default, or `$DSH_HOME`).
 
+## Host dependencies
+
+This plugin installs no DSH service packages and runs no install-time build. It ships built artifacts and uses host-provided services at runtime. Both `hoisted` and `isolated` work. When upgrading an old installation, use the original installation route to update and reinstall profile dependencies, pruning unused old transitive DSH packages, then restart manually. Preserve packages explicitly required by other plugins. Do not grant incompatible-version exemptions as a workaround.
+
 ## 1. Find your profile
 
 A profile is a directory under `~/.dsh/profiles/`. Which one you are using

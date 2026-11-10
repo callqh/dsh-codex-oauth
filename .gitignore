@@ -8,9 +8,8 @@
 #   client/client.js  the browser bundle
 #   lib/              the host entry
 #
-# `prepare` still rebuilds them when build scripts do run, so a checkout that
-# builds is never behind. Run `npm run check` before committing a change under
-# `src/`; it rebuilds both and then asserts their shape.
+# Installation never builds or installs host services. Run `npm run check`
+# before committing a change under `src/`; it rebuilds both artifacts.
 node_modules/
 *.tsbuildinfo
 .DS_Store

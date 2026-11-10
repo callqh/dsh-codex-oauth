@@ -82,7 +82,7 @@ and it flips there without a page refresh. Sign out deletes the credential.
 
 ## Verified
 
-- `npm test` — 44 cases across five lanes.
+- `npm test` — 45 cases across five lanes.
 - `npm run stage-verify -- --browser` — 26 checks in a throwaway profile built
   from a real profile's patch layer, including both sign-in branches driven
   against the real flow and the card rendered in a real browser.
@@ -124,11 +124,18 @@ are committed, because a bundle that fails to import in a profile's
 `dsh.profile.bundles` fails the whole application boot. Run `npm run check`
 after changing anything under `src/`.
 
-One thing worth knowing if you are writing a client bundle of your own: official
-`@deepseek-ai/*` peers need an explicit prerelease branch
-(`>=0.2.0-rc.2 <0.3.0-0 || >=0.3.0-0`), because node-semver only lets a
-prerelease satisfy a range when some comparator shares its exact
-`major.minor.patch` tuple. A broad-looking range silently excludes every `-rc`.
+### Host dependencies and upgrades
+
+The distribution has no runtime or peer dependencies and runs no install-time build.
+`@deepseek-ai/*` packages are development dependencies only. At runtime, DSH's
+module loader supplies the host's services, preventing old packages from shadowing
+built-in authorization and account services ([Issue #3](https://github.com/callqh/dsh-codex-oauth/issues/3)).
+Both `hoisted` and `isolated` layouts are supported; changing the profile layout is unnecessary.
+
+This removes dependency shadowing, not the need to check compatibility when host APIs change.
+After upgrading an old installation, reinstall the profile dependencies to prune unused old
+packages from its lockfile. Preserve dependencies explicitly required by other plugins.
+On Desktop, update through the in-app Plugin Manager, then restart manually.
 
 ## Security
 

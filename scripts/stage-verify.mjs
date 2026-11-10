@@ -37,6 +37,7 @@
  *   --source <name>    profile whose patch layer is mirrored. Default: desktop.
  *   --name <name>      staging profile name. Default: codex-staging.
  *   --keep             leave the staging profile in place for inspection.
+ *   --startup-only     check boot and read-only RPCs without starting OAuth.
  *   --timeout <ms>     how long to wait for the boot banner. Default: 120000.
  */
 import { spawn } from 'node:child_process'
@@ -54,7 +55,7 @@ function parseArgs(argv) {
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index]
     const value = argv[index + 1]
-    if (flag === '--dsh') { options.dsh = value; index += 1 } else if (flag === '--source') { options.source = value; index += 1 } else if (flag === '--name') { options.name = value; index += 1 } else if (flag === '--timeout') { options.timeout = Number(value); index += 1 } else if (flag === '--browser') { options.browser = true } else if (flag === '--screenshot') { options.screenshot = value; index += 1 } else if (flag === '--keep') { options.keep = true } else if (flag === '--help' || flag === '-h') { options.help = true } else throw new Error(`unknown argument ${JSON.stringify(flag)}`)
+    if (flag === '--startup-only') { options.startupOnly = true } else if (flag === '--dsh') { options.dsh = value; index += 1 } else if (flag === '--source') { options.source = value; index += 1 } else if (flag === '--name') { options.name = value; index += 1 } else if (flag === '--timeout') { options.timeout = Number(value); index += 1 } else if (flag === '--browser') { options.browser = true } else if (flag === '--screenshot') { options.screenshot = value; index += 1 } else if (flag === '--keep') { options.keep = true } else if (flag === '--help' || flag === '-h') { options.help = true } else throw new Error(`unknown argument ${JSON.stringify(flag)}`)
   }
   options.dsh ??= process.env.DSH_BIN
   return options
@@ -440,13 +441,19 @@ if (/^\s*-\s*id:\s*codex-oauth\s*$/m.test(sourcePatch)) {
 }
 
 await mkdir(stageDir, { recursive: true })
+// Install the shipped archive: link: would reuse development node_modules and
+// hide both accidental host dependencies and missing host module resolution.
+const packed = await run('npm', ['pack', '--ignore-scripts', '--pack-destination', stageHome], { cwd: root })
+if (packed !== 0) throw new Error('staging package creation failed')
+const packageManifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
+const archive = join(stageHome, `${packageManifest.name}-${packageManifest.version}.tgz`)
 await cp(join(sourceDir, 'pnpm-workspace.yaml'), join(stageDir, 'pnpm-workspace.yaml'))
 await writeFile(join(stageDir, 'cordis.yml'), '# staging profile; the tree is composed as patches\n[]\n')
 await writeFile(join(stageDir, 'package.json'), `${JSON.stringify({
   name: `dsh-profile-${options.name}`,
   private: true,
   dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'dsh-codex-oauth'] } },
-  dependencies: { 'dsh-codex-oauth': `link:${root}` },
+  dependencies: { 'dsh-codex-oauth': `file:${archive}` },
 }, null, 2)}\n`)
 // The route the card needs is part of the mirror too: without it the probe
 // reports `routeConfigured: false` and the sign-in would not make Codex usable.
@@ -456,7 +463,7 @@ const patch = sourcePatch.trimEnd().includes('id: llm-pi-ai')
 await writeFile(join(stageDir, 'cordis.patch.yml'), patch)
 
 process.stdout.write('stage-verify: installing the staging profile\n')
-const installed = await run('pnpm', ['install'], { cwd: stageDir })
+const installed = await run('pnpm', ['install', '--ignore-scripts'], { cwd: stageDir })
 if (installed !== 0) {
   process.stderr.write('stage-verify: pnpm install failed\n')
   process.exit(1)
@@ -476,12 +483,15 @@ try {
   check('the profile boots with this bundle in it', true)
   // The audit line is what the launcher prints for an entry that never
   // activated; its absence is the assertion.
-  const audit = /did not activate|: failed\b/.exec(banner.output)
+  const audit = /did not activate|: failed\b|disabling profile plugin|pending \(waiting for service:/.exec(banner.output)
   check('no entry failed to activate', audit === null, audit?.[0])
 
   const session = await openSession(url)
   const row = /\{"id":"dsh-codex-oauth"[^}]*\}/.exec(session.html)?.[0]
   check('the client bundle is in the page module graph', row !== undefined, 'no graph row for dsh-codex-oauth')
+
+  const account = await callRemote(url, session.cookie, 'account/getState')
+  check('built-in account service remains available', account?.ok === true, JSON.stringify(account?.error ?? null))
 
   const status = await callRemote(url, session.cookie, 'codexAuth/status')
   check('codexAuth/status answers', status?.ok === true, JSON.stringify(status?.error ?? null))
@@ -523,8 +533,10 @@ try {
   // question makes no network call and commits no credential — while exercising
   // the one interaction a user cannot avoid and the one the previous
   // implementation got wrong (it rendered this choice as a free-text field).
-  await signInProbe(url, session.cookie, check)
-  await browserLoginProbe(url, session.cookie, check)
+  if (options.startupOnly !== true) {
+    await signInProbe(url, session.cookie, check)
+    await browserLoginProbe(url, session.cookie, check)
+  }
 
   if (options.browser === true || options.screenshot !== undefined) {
     await browserProbe(url, check, options.screenshot)

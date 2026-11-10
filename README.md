@@ -78,7 +78,7 @@ dsh plugin --profile web add github:callqh/dsh-codex-oauth
 
 ## 验证到什么程度
 
-- `npm test` —— 44 个用例，五条泳道。
+- `npm test` —— 45 个用例，含安装包回归验证。
 - `npm run stage-verify -- --browser` —— 在一个由真实 profile 补丁层搭出来的一次性
   profile 里跑 26 项检查，其中包括对真实 flow 发起两条登录分支再撤回，以及用真实
   浏览器把卡片渲染出来。
@@ -102,7 +102,7 @@ dsh plugin --profile web add github:callqh/dsh-codex-oauth
 到了哪一步。
 
 如果装完 Harness 起不来：从 profile 的 `package.json` 里把 `"dsh-codex-oauth"` 从
-`dsh.profile.bundles` 中删掉，然后重启。这是本插件唯一可能让应用起不来的地方。
+`dsh.profile.bundles` 中删掉，然后重启。旧版本还可能因依赖覆盖内置服务而阻止启动，见下方升级说明。
 [INSTALL.md](INSTALL.md) 里有完整说明。
 
 ## 开发
@@ -117,10 +117,16 @@ npm test
 ——因为 `dsh.profile.bundles` 里的 bundle 一旦导入失败，整个应用都起不来。改完
 `src/` 下任何东西，跑一次 `npm run check`。
 
-如果你也在写 client bundle，有个坑值得知道：官方 `@deepseek-ai/*` 的 peer 范围必须
-带一个显式的预发布分支（`>=0.2.0-rc.2 <0.3.0-0 || >=0.3.0-0`）。node-semver 只在
-范围里某个比较符与该版本的 `major.minor.patch` 完全一致时才放行预发布版，所以看起来
-很宽的范围会把所有 `-rc` 静默排除掉。
+### 宿主依赖与升级
+
+安装包没有运行时依赖或 peer 依赖，也不会在安装时执行构建。`@deepseek-ai/*`
+仅保留为开发依赖；运行时由 DSH 的模块加载器提供当前宿主的服务，避免旧版包覆盖
+内置授权和账号服务（[Issue #3](https://github.com/callqh/dsh-codex-oauth/issues/3)）。
+`hoisted` 和 `isolated` 均可使用，无需更改 profile 的依赖布局。
+
+这消除了安装依赖造成的版本覆盖，但不保证未来宿主 API 变更仍然兼容。
+已安装旧版本时，更新插件后重新安装 profile 依赖，以清理锁文件中不再需要的旧包；
+不要删除其他插件明确依赖的包。Desktop 使用应用内插件管理器更新，然后手动重启。
 
 ## 安全
 
