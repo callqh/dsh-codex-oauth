@@ -53,6 +53,10 @@ https://github.com/callqh/dsh-codex-oauth
 - 一个 **ChatGPT Plus 或 Pro** 订阅。
 - 对 DSH home 的写权限（默认 `~/.dsh`，或 `$DSH_HOME`）。
 
+## 宿主依赖
+
+本插件不安装 DSH 服务包，也不执行安装时构建；直接使用已提交的构建产物，运行时复用宿主服务。无需切换 `hoisted` / `isolated`。从旧版更新时，应通过原安装途径更新并重新安装 profile 依赖，清理不再需要的旧版 DSH 传递依赖，再手动重启。保留其他插件明确依赖的包。不要通过放行不兼容版本来绕过检查。
+
 ## 1. 确认你在哪个 profile
 
 一个 profile 就是 `~/.dsh/profiles/` 下的一个目录。你在用哪个，决定了插件怎么装。

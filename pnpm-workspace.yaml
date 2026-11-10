@@ -1,12 +1,9 @@
-# A linked checkout keeps its own `node_modules`: the plugin's static imports
-# of @deepseek-ai/* resolve by ancestor lookup from the plugin's own real path,
-# so these have to land here rather than in the profile.
+# Development dependencies only; installed plugins use the host module resolver.
 packages:
   - .
 
 nodeLinker: hoisted
-# The plugin is resolved through the profile's loader, not through this
-# workspace's dependency graph; a strict peer graph would only add noise.
+# Host package peers are supplied explicitly in the development workspace.
 autoInstallPeers: false
 # `minimumReleaseAge` is a machine-wide supply-chain delay on the user's pnpm
 # config, and the whole @deepseek-ai 0.2.0-rc.2 line is younger than it. The
